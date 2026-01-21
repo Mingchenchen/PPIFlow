@@ -7,6 +7,7 @@ usage() {
     echo "Arguments:"
     echo "  input_pdb_dir   Directory containing input PDB files"
     echo "  csv_file        Path to CSV file (columns: link_name,seq,seq_idx)"
+    echo "  output_dir      Directory to store the results"
     echo "  num_of_jobs     Number of jobs to split/run"
     echo ""
     exit 1
@@ -229,7 +230,7 @@ for subfolder in "$af3_input_batch"/json/*; do
     echo "Inference: $folder_name"
 
     submit_output=$(sbatch --output="$af3score_log_dir/${folder_name}-%j.out" \
-    $REPO/5-submit_af3score_new.sh \
+    $REPO/5-submit_af3score.sh \
       "$af3_input_batch/json/$folder_name" \
       "$af3_input_batch/jax/$folder_name" \
       "$output_dir_af3score" 
@@ -271,7 +272,7 @@ echo "All processes completed! Output directory: $output_af3score_base"
 
 # Step 6: Extract all metrics
 echo "Step 6: Start extracting metrics..."
-/lustre/grp/cmclab/qinxy/new_miniconda3/envs/py39/bin/python $REPO/easy_get_metrics.py \
+python $REPO/easy_get_metrics.py \
  "$output_dir_af3score" \
  "$metric_csv"
 
