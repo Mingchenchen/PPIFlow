@@ -14,7 +14,7 @@ All steps of the pipeline are presented in **`demo_vhh.ipynb`**, from backbone g
 
 ```bash
 git clone https://github.com/Mingchenchen/PPIFlow.git
-cd ppiflow
+cd PPIFlow
 ```
 
 ### 2. Create Conda Environment
