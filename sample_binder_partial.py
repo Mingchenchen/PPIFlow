@@ -305,7 +305,7 @@ def get_parser():
     parser.add_argument(
         "--model_weights",
         type=str,
-        default="/lustre/grp/cmclab/share/guoly/ppiflow/ckpt/20250407_motif_v45_monomer_rcsb_from_mono_ep131/epoch=88-step=80367.ckpt",
+        default="binder.ckpt",
         help="Model weights file path",
     )
 
@@ -352,19 +352,3 @@ if __name__ == "__main__":
 
     run_pipeline(args)
 
-
-"""
-python sample_binder_partial.py \
---input_pdb /lustre/grp/cmclab/wanghz/Project/PPIFlowV1_0104/whz_binderpart_test/sample0_input.pdb \
---config /lustre/grp/cmclab/wanghz/Project/PPIFlowV1_0104/ppiflow_main/configs/inference_binder_partial.yaml \
---target_chain B --binder_chain A \
---start_t 0.7 \
---output_dir /lustre/grp/cmclab/wanghz/Project/PPIFlowV1_0104/whz_binderpart_test/outputs
-
-#motif
-python sample_binder_partial.py --input_pdb ./processed_complex_motif/partial/sample_P53/sample0_input.pdb \
---config configs/inference_binder_partial.yaml \
---target_chain B --binder_chain A --start_t 0.7  \
---output_dir ./outputs --name add_motif_csv \
---samples_per_target 2 --motif_contig "A2-4,A29" 
-"""

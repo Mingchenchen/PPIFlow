@@ -512,19 +512,3 @@ if __name__ == "__main__":
 
     run_pipeline(args)
 
-# /lustre/grp/cmclab/wanghz/anaconda3/envs/fm121/bin/python
-# /lustre/grp/cmclab/wanghz/Project/nanobody_partial_flow/sample_antibody_partial_flow.py
-# --complex_pdb /lustre/grp/cmclab/wanghz/Project/nanobody_partial_flow/test/antibody_sample10.pdb
-# --fixed_positions A97-113
-# --cdr_position A26-33,A51-58,A97-113,B151-158,B176-178,B215-223
-# --specified_hotspots C243,C246,C247,C333,C339,C340
-# --start_t 0.5
-# --samples_per_target 3
-# --output_dir /lustre/grp/cmclab/wanghz/Project/nanobody_partial_flow/whz_test
-# --retry_Limit 10
-# --config /lustre/grp/cmclab/wanghz/Project/nanobody_partial_flow/configs/inference_nanobody.yaml
-# --model_weights /lustre/grp/cmclab/share/huangxk/antibody_1029/epoch=100-step=8888.ckpt
-# --antigen_chain C
-# --heavy_chain A
-# --light_chain B
-# --name abcd
