@@ -1,5 +1,43 @@
 # Unconditional sampling
-
+data:
+  task: inpainting
+  dataset: cath40
+  loader:
+    num_workers: 4
+    prefetch_factor: 10
+  sampler:
+    max_batch_size: 16
+    max_num_res_squared: 270000
+    sample_cluster: true
+interpolant:
+  min_t: 0.01
+  separate_t: false
+  provide_kappa: false
+  hierarchical_t: false
+  twisting:
+    use: false
+  rots:
+    corrupt: true
+    train_schedule: linear
+    sample_schedule: exp
+    exp_rate: 10
+  trans:
+    corrupt: true
+    batch_ot: true
+    train_schedule: linear
+    sample_schedule: linear
+    sample_temp: 1.0
+    vpsde_bmin: 0.1
+    vpsde_bmax: 20.0
+    potential: null
+    potential_t_scaling: false
+    rog:
+      weight: 10.0
+      cutoff: 5.0
+  sampling:
+    num_timesteps: 100
+    do_sde: false
+  self_condition: ${model.edge_features.self_condition}
 inference:
   task: unconditional
   name: run_unconditional
@@ -65,9 +103,11 @@ model:
     c_aatype_emb: 128
     max_num_res: 2000
     timestep_int: 1000
-    embed_chain: true
+    embed_chain: false
+    embed_hotspot_mask: false
     embed_aatype: true
     n_aatype: 22
+    task: inpainting
   edge_features:
     single_bias_transition_n: 2
     c_s: ${model.node_embed_size}
@@ -77,9 +117,10 @@ model:
     rel_pos_feat_dim: 64
     num_bins: 22
     self_condition: true
-    embed_chain: true
     embed_diffuse_mask: true
-    embed_hotspot_mask: true
+    embed_chain: false
+    embed_hotspot_mask: false
+    task: inpainting
     embed_aatype: true
   ipa:
     c_s: ${model.node_embed_size}
@@ -91,6 +132,10 @@ model:
     seq_tfmr_num_heads: 4
     seq_tfmr_num_layers: 2
     num_blocks: 6
+  seq_decoder:
+    use: false
+    c_s: ${model.node_embed_size}
+    feat_dim: 128
   pairformer:
     use: true
     c_s: ${model.node_embed_size}
@@ -99,3 +144,4 @@ model:
     num_blocks: 4
     c_hidden_pair_att: 16
     no_heads_pair: 4
+  task: inpainting
