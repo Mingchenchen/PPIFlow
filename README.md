@@ -200,19 +200,19 @@ python sample_antibody_partial_flow.py \
 **Parameters:**
 | Parameter | Description |
 |-----------|-------------|
-| `--complex_pdb` | Path to the PDB file containing the antibody-antigen complex structure. |
-| `--fixed_positions`| Specifies the indices of residues that must remain stationary during the partial flow. |
-| `--cdr_position` | The indices of the CDR loop.  |
-| `--specified_hotspots` | Hotspot residues on antigen pdb |
-| `--start_t` | The timestep at which the flow begins ($0 \leq t \leq 1$). Larger values preserve more of the input structure (refinement), while lower values allow for more stochastic redesign. |
-| `--samples_per_target` | The number of samples to generate. |
-| `--output_dir` | The directory where generated PDB files will be saved. |
-| `--retry_Limit` | Maximum number of attempts to regenerate a structure if the current run fails filters. |
-| `--config` | Path to the configuration file (YAML) containing model hyperparameters and runtime settings. |
-| `--model_weights` | Path to the pre-trained model weights file. |
-| `--antigen_chain` | Chain ID of antigen in antigen pdb |
-| `--heavy_chain` | Chain ID of heavy chain in framework pdb |
-| `--light_chain` | Chain ID of light chain in framework pdb |
+| `complex_pdb` | Path to the PDB file containing the antibody-antigen complex structure. |
+| `fixed_positions`| Specifies the indices of residues that must remain stationary during the partial flow. |
+| `cdr_position` | The indices of the CDR loop.  |
+| `specified_hotspots` | Hotspot residues on antigen pdb |
+| `start_t` | The timestep at which the flow begins ($0 \leq t \leq 1$). Larger values preserve more of the input structure (refinement), while lower values allow for more stochastic redesign. |
+| `samples_per_target` | The number of samples to generate. |
+| `output_dir` | The directory where generated PDB files will be saved. |
+| `retry_Limit` | Maximum number of attempts to regenerate a structure if the current run fails filters. |
+| `config` | Path to the configuration file (YAML) containing model hyperparameters and runtime settings. |
+| `model_weights` | Path to the pre-trained model weights file. |
+| `antigen_chain` | Chain ID of antigen in antigen pdb |
+| `heavy_chain` | Chain ID of heavy chain in framework pdb |
+| `light_chain` | Chain ID of light chain in framework pdb |
 
 #### Nanobody
 
@@ -244,6 +244,16 @@ python sample_binder_partial.py \
 --output_dir ./outputs
 ```
 
+## Cite
+```
+@article {yu2026ppiflow,
+	author = {Yu, Qilin and Guo, Liangyue and Qin, Xiayan and Huang, Xikun and Tian, Baihui and Wang, Hongzhun and Liu, Yu and Lang, Yunzhi and Wang, Di and Shen, Zhouhanyu and Lin, Jie and Chen, Mingchen},
+	title = {High-Affinity Protein Binder Design via Flow Matching and In Silico Maturation},
+	year = {2026},
+	doi = {10.64898/2026.01.19.700484},
+	journal = {bioRxiv}
+}
+```
 
 
 
