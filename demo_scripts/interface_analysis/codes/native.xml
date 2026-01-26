@@ -3,7 +3,6 @@
         </SCOREFXNS>
 	<RESIDUE_SELECTORS>
 		<Neighborhood name="nbrhood" resnums="29L-147L,18R-131R" distance="20.0"/>
-		<!-- <Neighborhood name="nbrhood" resnums="29L-147L,18R-131R" distance="20.0"/> -->
 		<Not name="others" selector="nbrhood" />
 	</RESIDUE_SELECTORS>
 	<TASKOPERATIONS>
