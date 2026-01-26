@@ -13,7 +13,7 @@ BATCH_IDX=$3
 
 echo "Running relax on $PDB_DIR → $OUTPUT_DIR (batch $BATCH_IDX)"
 
-python demo_scripts/submit_relax_comp.py \
+python demo_scripts/relax_complex.py \
   --pdb_dir ${PDB_DIR} \
   --output_dir ${OUTPUT_DIR} \
   --batch_idx ${BATCH_IDX} \
