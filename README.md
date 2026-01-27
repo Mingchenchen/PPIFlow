@@ -202,7 +202,7 @@ python sample_antibody_partial_flow.py \
 |-----------|-------------|
 | `complex_pdb` | Path to the PDB file containing the antibody-antigen complex structure. |
 | `fixed_positions`| Specifies the indices of residues that must remain stationary during the partial flow. |
-| `cdr_position` | The indices of the CDR loop.  |
+| `cdr_position` | Index of all CDR regions (IMGT) for distinguishing CDRs from the framework.  |
 | `specified_hotspots` | Hotspot residues on antigen pdb |
 | `start_t` | The timestep at which the flow begins ($0 \leq t \leq 1$). Larger values preserve more of the input structure (refinement), while lower values allow for more stochastic redesign. |
 | `samples_per_target` | The number of samples to generate. |
