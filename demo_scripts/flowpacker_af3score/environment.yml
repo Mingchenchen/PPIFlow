@@ -1,0 +1,33 @@
+name: flowpacker
+channels:
+  - pyg
+  - pytorch
+  - nvidia
+  - conda-forge
+
+dependencies:
+  # Python
+  - python=3.10
+  - pip
+
+  # PyTorch + CUDA
+  - pytorch=2.1.0
+  - pytorch-cuda=12.1
+
+  # PyG core deps via conda
+  - pytorch-scatter
+  - pytorch-cluster
+
+  # pip-installed packages
+  - pip:
+      - numpy==1.22.4
+      - torch-geometric
+      - tqdm
+      - tensorboard
+      - pyyaml
+      - easydict
+      - biotite
+      - dm-tree
+      - biopython
+      - modelcif
+      - e3nn
