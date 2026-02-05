@@ -21,6 +21,7 @@ dependencies:
   # pip-installed packages
   - pip:
       - numpy==1.22.4
+      - pandas
       - torch-geometric
       - tqdm
       - tensorboard
