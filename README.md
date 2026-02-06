@@ -7,6 +7,7 @@ PPIFlow demonstrated a flow-matching-based framework and integrated design workf
 We provide a **demo** to illustrate the complete workflow.  
 All steps of the pipeline are presented in **`demo_vhh.ipynb`**, from backbone generation and sequence design to affinity evaluation, allowing users to reproduce the full VHH design process.
 
+We provide a [Colab](https://colab.research.google.com/drive/1rWt0E1ZQfKaf2dCFGbqVNau9XWcxbhCd?usp=drive_link) for quickly trying out our model.
 
 ## Environment Setup
 
