@@ -239,6 +239,8 @@ python sample_antibody_partial_flow.py \
 ```bash
 python sample_binder_partial.py \
 --input_pdb sample_input.pdb \
+--fixed_positions A98-109 \
+--model_weights binder.ckpt \
 --config ./configs/inference_binder_partial.yaml \
 --target_chain B --binder_chain A \
 --start_t 0.7 \
