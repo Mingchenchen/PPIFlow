@@ -126,9 +126,9 @@ def preprocess_csv_and_pkl(pdb_path, output_dir, args) -> str:
         input_info["chain1_id"] = args.target_chain
         input_info["chain2_id"] = args.binder_chain
 
-    if args.motif_contig is not None:
+    if args.fixed_positions is not None:
         input_info["binder_motif"] = get_motif_residues(
-            args.motif_contig, args.binder_chain
+            args.fixed_positions, args.binder_chain
         )
 
     metadata = process_file(input_info, write_dir=output_dir)
@@ -186,7 +186,7 @@ def run_pipeline(args):
             "max_hotspot_ratio": args.sample_hotspot_rate_max,
             "motif": (
                 None
-                if (args.motif_contig is None)
+                if (args.fixed_positions is None)
                 else {"define_motif": True}
             ),
         },
@@ -290,7 +290,7 @@ def get_parser():
 
     # Motif
     parser.add_argument(
-        "--motif_contig", type=str, help="Motif contig, e.g., 'L19-27,L31'"
+        "--fixed_positions", type=str, help="Key residues to fix in input_pdb. e.g., 'L19-27,L31'"
     )
     
     # Samples
