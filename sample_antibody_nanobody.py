@@ -367,6 +367,12 @@ def process_file(
     metadata["modeled_seq_len"] = len(modeled_idx)
     complex_feats["modeled_idx"] = modeled_idx
 
+    # zf_fixed: Map hotspot indices to modeled_idx space
+    idx_mapping = {old_idx: new_idx for new_idx, old_idx in enumerate(modeled_idx)}
+    modeled_hotspot_index = [idx_mapping[idx] for idx in hotspot_index if idx in idx_mapping]
+    metadata["hotspots"] = modeled_hotspot_index
+
+
     # Set chain groups for antigen and binder
     antigen_chains = [
         du.chain_str_to_int(chain_id)
