@@ -23,6 +23,15 @@ cd PPIFlow
 bash Install.sh
 ```
 
+Download the PPIFlow checkpoints from [Google Drive](https://drive.google.com/drive/folders/1BcIBUL2yq1gOchHfN68-AcZK3hiMAMVN?usp=drive_link)
+
+| Task Type | Checkpoint Path |
+|------------|-----------------|
+| Binder | `binder.ckpt` |
+| Antibody | `antibody.ckpt` |
+| Nanobody | `nanobody.ckpt` |
+| Monomer or Motif Scaffolding  | `monomer.ckpt` |
+
 ## Pipeline Overview
 
 `pipeline.py` reads two YAML files:
@@ -67,13 +76,15 @@ The exact order and output directories are implemented directly in `pipeline.py`
 
 ## Run `pipeline.py`
 
-Before running the pipeline, you need to download the Flowpacker model weights, AF3 model weights and database.
+
 
 ### Full run
 
 ```bash
 python pipeline.py --task example/task_binder.yaml --steps example/steps_config/steps_binder.yaml
 ```
+
+Before running the pipeline, you need to download the Flowpacker model weights([Flowpacker](https://gitlab.com/mjslee0921/flowpacker)), AF3 model weights and database([AlphaFold3](https://github.com/google-deepmind/alphafold3)). Many paths in the example `steps.yaml` files must be replaced with your local paths.
 
 ### Stage 1 only
 
