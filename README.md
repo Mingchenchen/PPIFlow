@@ -10,7 +10,7 @@ This repository provides a two-stage protein design pipeline built around **PPIF
 
 The pipeline orchestrates structure generation, sequence design, side-chain packing, AF3score scoring, filtering, partial redesign, AF3 refolding, ranking, and report generation through `pipeline.py`.
 
-For a given design task, the pipeline generates a directory named `design_output`, which contains the PDB files of the designed structures, sequences, computed evaluation metrics for each design, and a design report. See [Design Demo]([/example/design_output](https://github.com/Mingchenchen/PPIFlow/blob/pipeline/example/design_output/design_report.html)).
+For a given design task, the pipeline generates a directory named `design_output`, which contains the PDB files of the designed structures, sequences, computed evaluation metrics for each design, and a design report. See [Design Demo]([/example/design_output](/example/design_output)).
 
 See [tool/PPIFlow/README.md](/tool/PPIFlow/README.md) for PPIFlow only.
 
