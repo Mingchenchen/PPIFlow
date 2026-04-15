@@ -21,6 +21,10 @@ git clone https://github.com/Mingchenchen/PPIFlow.git
 cd PPIFlow
 
 bash Install.sh
+
+# Install Rosetta
+wget https://downloads.rosettacommons.org/downloads/academic/2024/wk09/rosetta.binary.linux.release-371.tar.bz2
+tar -xvf rosetta.binary.linux.release-371.tar.bz2
 ```
 
 Download the PPIFlow checkpoints from [Google Drive](https://drive.google.com/drive/folders/1BcIBUL2yq1gOchHfN68-AcZK3hiMAMVN?usp=drive_link)
