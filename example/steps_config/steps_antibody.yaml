@@ -1,13 +1,13 @@
 # steps_antibody.yaml
 
-python: "/lustre/grp/cmclab/wanghz/anaconda3/envs/ppiflow_af3/bin/python"
+python: "~/anaconda3/envs/ppiflow_af3/bin/python"
 
 # ============================================================
 # PPIFlowStep
 # ============================================================
 PPIFlowStep:
-  model_weights: "/lustre/grp/cmclab/share/huangxk/antibody_1029/epoch=100-step=8888.ckpt"
-  config: "/lustre/grp/cmclab/wanghz/Project/PPIFlowV1_pipeline/tools/PPIFlow/configs/inference_nanobody.yaml"
+  model_weights: "antibody.ckpt"
+  config: "/tools/PPIFlow/configs/inference_nanobody.yaml"
 
 # ============================================================
 # AbMPNNStep（Stage 1）
@@ -23,7 +23,7 @@ AbMPNNStep_stage1:
 # FlowpackerStep（Stage 1）
 # ============================================================
 FlowpackerStep_stage1:
-  config_path: "/lustre/grp/cmclab/wanghz/Project/PPIFlowV1_pipeline/tools/flowpacker/config/inference/base.yaml"
+  config_path: "/tools/flowpacker/config/inference/base.yaml"
   use_gt_masks: true
 
 # ============================================================
@@ -39,7 +39,9 @@ AF3scoreStep_stage1:
 # ============================================================
 FilterStep_stage1:
   filters:
-    iptm_A_C: "> 0.15"
+    iptm_A_C: "> 0.3"
+    chain_A_ptm: "> 0.7"
+    chain_B_ptm: "> 0.7"
 
 # ============================================================
 # RosettaFixStep
@@ -55,9 +57,9 @@ RosettaFixStep:
 # PartialStep
 # ============================================================
 PartialStep:
-  model_weights: "/lustre/grp/cmclab/share/huangxk/antibody_1029/epoch=100-step=8888.ckpt"
-  config: "/lustre/grp/cmclab/wanghz/Project/PPIFlowV1_pipeline/tools/PPIFlow/configs/inference_nanobody.yaml"
-  samples_per_target: 5
+  model_weights: "antibody.ckpt"
+  config: "/tools/PPIFlow/configs/inference_nanobody.yaml"
+  samples_per_target: 10
   start_t: 0.7
   antigen_chain: "C"
   heavy_chain: "A"
@@ -78,7 +80,7 @@ AbMPNNStep_stage2:
 # FlowpackerStep（Stage 2）
 # ============================================================
 FlowpackerStep_stage2:
-  config_path: "/lustre/grp/cmclab/wanghz/Project/PPIFlowV1_pipeline/tools/flowpacker/config/inference/base.yaml"
+  config_path: "/tools/flowpacker/config/inference/base.yaml"
   use_gt_masks: true
 
 # ============================================================
@@ -94,7 +96,9 @@ AF3scoreStep_stage2:
 # ============================================================
 FilterStep_stage2:
   filters:
-    iptm: "> 0.7 "
+    iptm_A_C: "> 0.3"
+    chain_A_ptm: "> 0.7"
+    chain_B_ptm: "> 0.7"
 
 # ============================================================
 # ReFoldStep
@@ -115,7 +119,7 @@ ReFoldStep:
 # DockQStep
 # ============================================================
 DockQStep:
-  dockq_exe: "/lustre/grp/cmclab/wanghz/anaconda3/envs/ppiflow_af3/bin/DockQ"
+  dockq_exe: "~/anaconda3/envs/ppiflow_af3/bin/DockQ"
   dockq_args:
     - "--short"
   recursive: false

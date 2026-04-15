@@ -1,12 +1,12 @@
 
-python: "/lustre/grp/cmclab/wanghz/anaconda3/envs/ppiflow_af3/bin/python"
+python: "~/anaconda3/envs/ppiflow_af3/bin/python"
 
 # ============================================================
 # PPIFlowStep
 # ============================================================
 PPIFlowStep:
-  model_weights: "/lustre/grp/cmclab/share/guoly/ppiflow/ckpt/20250407_motif_v45_monomer_rcsb_from_mono_ep131/all_ckpt/ckpt/epoch=31-step=28896.ckpt"
-  config: "/lustre/grp/cmclab/wanghz/Project/PPIFlowV1_pipeline/tools/PPIFlow/configs/inference_binder.yaml"                         # YAML config 路径，null 使用脚本默认值
+  model_weights: "binder.ckpt"
+  config: "/tools/PPIFlow/configs/inference_binder.yaml"                         # YAML config 路径，null 使用脚本默认值
 
 # ============================================================
 # MPNNStep（Stage 1）
@@ -24,7 +24,7 @@ MPNNStep_stage1:
 # FlowpackerStep（Stage 1）
 # ============================================================
 FlowpackerStep_stage1:
-  config_path: "/lustre/grp/cmclab/wanghz/Project/PPIFlowV1_pipeline/tools/flowpacker/config/inference/base.yaml"
+  config_path: "/tools/flowpacker/config/inference/base.yaml"
   use_gt_masks: true
 
 # ============================================================
@@ -40,8 +40,8 @@ AF3scoreStep_stage1:
 # ============================================================
 FilterStep_stage1:
   filters:
-    iptm: "> 0.7 "
-
+    iptm: "> 0.7"
+    chain_A_ptm: "> 0.7"
 
 # ============================================================
 # RosettaFixStep
@@ -57,9 +57,9 @@ RosettaFixStep:
 # PartialStep（Stage 2）
 # ============================================================
 PartialStep:
-  model_weights: "/lustre/grp/cmclab/share/guoly/ppiflow/ckpt/20250407_motif_v45_monomer_rcsb_from_mono_ep131/all_ckpt/ckpt/epoch=31-step=28896.ckpt"
-  config: "/lustre/grp/cmclab/wanghz/Project/PPIFlowV1_pipeline/tools/PPIFlow/configs/inference_binder_partial.yaml"
-  samples_per_target: 5
+  model_weights: "binder.ckpt"
+  config: "/tools/PPIFlow/configs/inference_binder_partial.yaml"
+  samples_per_target: 10
   start_t: 0.7                   
   target_chain: "B"
   binder_chain: "A"
@@ -81,7 +81,7 @@ MPNNStep_stage2:
 # FlowpackerStep（Stage 2）
 # ============================================================
 FlowpackerStep_stage2:
-  config_path: "/lustre/grp/cmclab/wanghz/Project/PPIFlowV1_pipeline/tools/flowpacker/config/inference/base.yaml"
+  config_path: "/tools/flowpacker/config/inference/base.yaml"
   use_gt_masks: true
 
 # ============================================================
@@ -97,7 +97,9 @@ AF3scoreStep_stage2:
 # ============================================================
 FilterStep_stage2:
   filters:
-    iptm: "> 0.7 "
+    iptm: "> 0.7"
+    chain_A_ptm: "> 0.7"
+
 # ============================================================
 # ReFoldStep
 # ============================================================
@@ -117,7 +119,7 @@ ReFoldStep:
 # DockQStep
 # ============================================================
 DockQStep:
-  dockq_exe: "/lustre/grp/cmclab/wanghz/anaconda3/envs/ppiflow_af3/bin/DockQ"
+  dockq_exe: "~/anaconda3/envs/ppiflow_af3/bin/DockQ"
   dockq_args:
     - "--short"
   recursive: false
