@@ -6,7 +6,7 @@ python: "~/anaconda3/envs/ppiflow_af3/bin/python"
 # ============================================================
 PPIFlowStep:
   model_weights: "binder.ckpt"
-  config: "/tools/PPIFlow/configs/inference_binder.yaml"                         # YAML config 路径，null 使用脚本默认值
+  config: "/tools/PPIFlow/configs/inference_binder.yaml"
 
 # ============================================================
 # MPNNStep（Stage 1）
