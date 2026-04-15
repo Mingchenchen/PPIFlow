@@ -1,5 +1,7 @@
 # PPIFlow Pipeline
 
+![](./model.png)
+
 This repository provides a two-stage protein design pipeline built around **PPIFlow**. It supports three design modes:
 
 - `binder`
@@ -9,8 +11,6 @@ This repository provides a two-stage protein design pipeline built around **PPIF
 The pipeline orchestrates structure generation, sequence design, side-chain packing, AF3score scoring, filtering, partial redesign, AF3 refolding, ranking, and report generation through `pipeline.py`.
 
 ## Environment Installation
-
-`Install.sh` creates a Conda environment from `ppiflow_af3_merged.yaml`, installs Triton `3.1.0`, clones external dependencies into `tools/`, and installs `AF3Score` in editable mode.
 
 ```bash
 bash Install.sh
