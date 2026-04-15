@@ -10,9 +10,14 @@ This repository provides a two-stage protein design pipeline built around **PPIF
 
 The pipeline orchestrates structure generation, sequence design, side-chain packing, AF3score scoring, filtering, partial redesign, AF3 refolding, ranking, and report generation through `pipeline.py`.
 
+See [tool/PPIFlow/README.md](/tool/PPIFlow/README.md) for PPIFlow only.
+
 ## Environment Installation
 
 ```bash
+git clone https://github.com/Mingchenchen/PPIFlow.git
+cd PPIFlow
+
 bash Install.sh
 ```
 
@@ -233,7 +238,7 @@ Start from one of:
 
 These files show the expected keys for each design mode.
 
-See [steps/README.md](/Users/wanghongzhun/Documents/Code/PPIFlowV1_pipeline_v1/pipeline/steps/README.md) for a step-by-step description of every pipeline component.
+See [steps/README.md](/steps/README.md) for a step-by-step description of every pipeline component.
 
 
 ## Output Directories
