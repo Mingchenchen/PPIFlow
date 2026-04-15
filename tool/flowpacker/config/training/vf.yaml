@@ -1,0 +1,54 @@
+mode: flow
+ckpt:
+
+data:
+  data: cluster
+  train_path: '../data/pdb_s40' # '/mnt/d/bc40/processed'
+  cluster_path: './data/pdb_s40_cluster.tsv'
+  test_path: '/mnt/d/casp13'
+  min_length: 40
+  max_length: 512
+  edge_type: knn
+  max_radius: 16.0
+  max_neighbors: 30
+
+model:
+  node_feature_in: 95
+  edge_feature_in: 261 # 128 + 65
+  num_layers: 4
+  lmax_list: [3]
+  mmax_list: [1]
+  edge_channels: 256
+  share_atom_edge_embedding: False
+  use_atom_edge_embedding: True
+  sphere_channels: 256
+  attn_hidden_channels: 64
+  num_heads: 8
+  attn_alpha_channels: 32
+  attn_value_channels: 16
+  ffn_hidden_channels: 256
+  attn_activation: 'silu'
+  ffn_activation: 'silu'      # ['silu', 'swiglu']
+  use_gate_act: False       # [True, False] Switch between gate activation and S2 activation NOTE: using S2 activation stalls ODE integration - have to use gate act
+  use_grid_mlp: True        # [False, True] If `True`, use projecting to grids and performing MLPs for FFNs.
+  weight_init: 'uniform'    # ['uniform', 'normal']
+  norm_type: 'layer_norm_sh'    # ['rms_norm_sh', 'layer_norm', 'layer_norm_sh']
+  self_condition: False
+  use_virtual_cb: True
+  add_dist_to_edge: True
+
+train:
+  name: l3_m1_512_cluster_vf
+  num_epochs: 500
+  batch_size: 4
+  save_interval: 50
+  print_interval: 1
+  lr: 1.0e-4
+  lr_schedule: False
+  ema: 0.999
+  weight_decay: 1.0e-12
+  grad_norm: 1.0
+  lr_decay: 0.999
+  eps: 2.0e-4 #1.0e-3 
+  loss_type: vf
+  self_condition: False

@@ -1,0 +1,14 @@
+torch
+tqdm
+tensorboard
+pyyaml
+easydict
+biotite
+dm-tree
+biopython
+modelcif
+torch_geometric
+numpy==1.22.4
+torch_cluster
+pandas
+e3nn
