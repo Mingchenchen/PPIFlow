@@ -1,0 +1,33 @@
+
+task:
+  name: "CD3d"                    
+  gentype: "binder"                  # binder | antibody | nanobody
+  input_pdb: "example/target_and_framework_pdb/CD3d.pdb"     
+  target_chain: "B"                    
+  binder_chain: "A"                    
+  specified_hotspots: "B67,B78,B99"           
+  samples_min_length: 50               
+  samples_max_length: 60              
+  samples_per_target: 10            
+  output_base_dir: "../test_pipeline_binder"   
+
+steps:
+  # --- Stage 1 ---
+  PPIFlowStep: false
+  MPNNStep_stage1: false 
+  FlowpackerStep_stage1: true
+  AF3scoreStep_stage1: true
+  FilterStep_stage1: true            
+
+  # --- Stage 2 ---
+  RosettaFixStep: false
+  PartialStep: false
+  MPNNStep_stage2: false  
+  FlowpackerStep_stage2: false
+  AF3scoreStep_stage2: false
+  FilterStep_stage2: false           
+  ReFoldStep: false
+  DockQStep: true
+  RosettaRelaxStep: true
+  RankStep: true
+  ReportStep: false

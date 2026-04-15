@@ -1,0 +1,135 @@
+
+python: "/lustre/grp/cmclab/wanghz/anaconda3/envs/ppiflow_af3/bin/python"
+
+# ============================================================
+# PPIFlowStep
+# ============================================================
+PPIFlowStep:
+  model_weights: "/lustre/grp/cmclab/share/guoly/ppiflow/ckpt/20250407_motif_v45_monomer_rcsb_from_mono_ep131/all_ckpt/ckpt/epoch=31-step=28896.ckpt"
+  config: "/lustre/grp/cmclab/wanghz/Project/PPIFlowV1_pipeline/tools/PPIFlow/configs/inference_binder.yaml"                         # YAML config 路径，null 使用脚本默认值
+
+# ============================================================
+# MPNNStep（Stage 1）
+# ============================================================
+MPNNStep_stage1:
+  protocol: "base"                     # base | bias | fix
+  num_seq_per_target: 8
+  sampling_temp: 0.1
+  batch_size: 1
+  chains_to_design: "A"
+  omit_AAs: "C"
+  use_soluble_model: true
+
+# ============================================================
+# FlowpackerStep（Stage 1）
+# ============================================================
+FlowpackerStep_stage1:
+  config_path: "/lustre/grp/cmclab/wanghz/Project/PPIFlowV1_pipeline/tools/flowpacker/config/inference/base.yaml"
+  use_gt_masks: true
+
+# ============================================================
+# AF3scoreStep（Stage 1）
+# ============================================================
+AF3scoreStep_stage1:
+  db_dir: "/lustre/grp/cmclab/share/wangd/af3_data"
+  model_dir: "/lustre/grp/cmclab/share/chenmc/Alphafold3params"
+  num_workers: 2                  
+
+# ============================================================
+# FilterStep（Stage 1）
+# ============================================================
+FilterStep_stage1:
+  filters:
+    iptm: "> 0.7 "
+
+
+# ============================================================
+# RosettaFixStep
+# ============================================================
+RosettaFixStep:
+  rosetta_bin: "/lustre/grp/cmclab/share/yuql/tool/rosetta.binary.linux.release-371/main/source/bin/rosetta_scripts.static.linuxgccrelease"
+  interface_dist: 12.0
+  native_xml: null                    
+  plot_toggle: false
+  overwrite: True
+
+# ============================================================
+# PartialStep（Stage 2）
+# ============================================================
+PartialStep:
+  model_weights: "/lustre/grp/cmclab/share/guoly/ppiflow/ckpt/20250407_motif_v45_monomer_rcsb_from_mono_ep131/all_ckpt/ckpt/epoch=31-step=28896.ckpt"
+  config: "/lustre/grp/cmclab/wanghz/Project/PPIFlowV1_pipeline/tools/PPIFlow/configs/inference_binder_partial.yaml"
+  samples_per_target: 5
+  start_t: 0.7                   
+  target_chain: "B"
+  binder_chain: "A"
+  sample_hotspot_rate_min: 0.2
+  sample_hotspot_rate_max: 0.5
+
+# ============================================================
+# MPNNStep（Stage 2）
+# ============================================================
+MPNNStep_stage2:
+  num_seq_per_target: 8             
+  sampling_temp: 0.1
+  batch_size: 1
+  chains_to_design: "A"
+  omit_AAs: "C"
+  use_soluble_model: true
+
+# ============================================================
+# FlowpackerStep（Stage 2）
+# ============================================================
+FlowpackerStep_stage2:
+  config_path: "/lustre/grp/cmclab/wanghz/Project/PPIFlowV1_pipeline/tools/flowpacker/config/inference/base.yaml"
+  use_gt_masks: true
+
+# ============================================================
+# AF3scoreStep（Stage 2）
+# ============================================================
+AF3scoreStep_stage2:
+  db_dir: "/lustre/grp/cmclab/share/wangd/af3_data"
+  model_dir: "/lustre/grp/cmclab/share/chenmc/Alphafold3params"
+  num_workers: 2   
+
+# ============================================================
+# FilterStep（Stage 2）
+# ============================================================
+FilterStep_stage2:
+  filters:
+    iptm: "> 0.7 "
+# ============================================================
+# ReFoldStep
+# ============================================================
+ReFoldStep:
+  db_dir: "/lustre/grp/cmclab/share/wangd/af3_data"
+  model_dir: "/lustre/grp/cmclab/share/chenmc/Alphafold3params"
+  hmmer_path: "/lustre/grp/cmclab/share/wangd/hmmer/bin"
+  run_MSA: true
+  remove_template: true
+  run_AF3_inference: false
+  seed_num: "5"
+  cuda_bin: "/usr/local/cuda-12.6/bin"
+  cuda_lib: "/usr/local/cuda-12.6/lib64"
+  xla_client_mem_fraction: "0.95"
+
+# ============================================================
+# DockQStep
+# ============================================================
+DockQStep:
+  dockq_exe: "/lustre/grp/cmclab/wanghz/anaconda3/envs/ppiflow_af3/bin/DockQ"
+  dockq_args:
+    - "--short"
+  recursive: false
+
+# ============================================================
+# RosettaRelaxStep
+# ============================================================
+RosettaRelaxStep:
+  batch_idx: "0"
+  dump_pdb: false
+
+
+RankStep:
+  dockq_threshold: 0.49
+  output_csv_name: ranked_designs.csv
