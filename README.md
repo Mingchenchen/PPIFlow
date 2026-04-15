@@ -10,6 +10,8 @@ This repository provides a two-stage protein design pipeline built around **PPIF
 
 The pipeline orchestrates structure generation, sequence design, side-chain packing, AF3score scoring, filtering, partial redesign, AF3 refolding, ranking, and report generation through `pipeline.py`.
 
+For a given design task, the pipeline generates a directory named `design_output`, which contains the PDB files of the designed structures, sequences, computed evaluation metrics for each design, and a design report. See [Design Demo](/example/design_output).
+
 See [tool/PPIFlow/README.md](/tool/PPIFlow/README.md) for PPIFlow only.
 
 ## Environment Installation
@@ -64,6 +66,8 @@ Typical Stage 2 flow:
 The exact order and output directories are implemented directly in `pipeline.py`.
 
 ## Run `pipeline.py`
+
+Before running the pipeline, you need to download the Flowpacker model weights, AF3 model weights and database.
 
 ### Full run
 
@@ -270,3 +274,14 @@ The scheduler uses fixed directory names under `output_base_dir`. The main layou
 - Stage 2 expects Stage 1 outputs unless you manually prepare the required intermediate files.
 - Many paths in the example `steps.yaml` files must be replaced with your local paths.
 - The repository examples are the best starting templates for new runs.
+
+## Cite
+```
+@article {yu2026ppiflow,
+	author = {Yu, Qilin and Guo, Liangyue and Qin, Xiayan and Huang, Xikun and Tian, Baihui and Wang, Hongzhun and Liu, Yu and Lang, Yunzhi and Wang, Di and Shen, Zhouhanyu and Lin, Jie and Chen, Mingchen},
+	title = {High-Affinity Protein Binder Design via Flow Matching and In Silico Maturation},
+	year = {2026},
+	doi = {10.64898/2026.01.19.700484},
+	journal = {bioRxiv}
+}
+```
