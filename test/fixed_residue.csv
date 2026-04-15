@@ -1,5 +1,0 @@
-pdb_path,pdb_name,target_id,binder_id,key_res,num_fixed_residues
-test/af3score/filtered_links/4dn4_ccl2_0_7.pdb,4dn4_ccl2_0,M,A,"{'100': [-10.249, 'S'], '32': [-5.277, 'Y']}",2
-test/af3score/filtered_links/4dn4_ccl2_1_8.pdb,4dn4_ccl2_1,M,A,"{'45': [-6.531000000000001, 'R'], '53': [-5.727, 'S']}",2
-test/af3score/filtered_links/4dn4_ccl2_3_6.pdb,4dn4_ccl2_3,M,A,{},0
-test/af3score/filtered_links/4dn4_ccl2_8_4.pdb,4dn4_ccl2_8,M,A,"{'100': [-5.142, 'R'], '101': [-5.335, 'I']}",2
