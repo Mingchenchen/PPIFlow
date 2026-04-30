@@ -91,7 +91,7 @@ python pipeline.py --task example/task_binder.yaml --steps example/steps_config/
 Before running the pipeline, you need to download the Flowpacker model weights([Flowpacker](https://gitlab.com/mjslee0921/flowpacker)), AF3 model weights and database([AlphaFold3](https://github.com/google-deepmind/alphafold3)). Many paths in the example `steps.yaml` files must be replaced with your local paths.
 
 > [!NOTE]
-> - The pipeline runs on a single machine.  
+> - The pipeline runs on a single GPU.  
 >   For large-scale inference, it is recommended to perform **batch processing across multiple GPUs**, with each GPU handling approximately **1000–2000 designs**.
 >
 > - The following steps（Stage 2） are **CPU-intensive and time-consuming**:
