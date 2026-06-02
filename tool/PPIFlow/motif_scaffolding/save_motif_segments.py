@@ -1,6 +1,8 @@
 """Script and utils for extracting motif segments into a list of tensor7 and
 saving them out as pkls.
 
+Sample command:
+> python scripts/save_motif_segments.py
 """
 
 import math
@@ -43,7 +45,7 @@ def create_pad_feats(pad_amt):
 
 def process_motif_row(motif_row):
     """Parse row in the motif CSV."""
-    motif_path = motif_row.motif_path
+    motif_path = motif_row.raw_path    # *
     motif_chain_feats = du.parse_pdb_feats(
         'motif', motif_path, chain_id=None)
     return {
@@ -60,21 +62,42 @@ def create_motif_feats(chain_feats, start_idx, end_idx):
     return pad_feats
 
 
+# def motif_locations_from_contig(sample_contig):
+#     # Parse contig.
+#     length_so_far = 0
+#     motif_locations = []
+#     for segment in sample_contig.split(','):
+#         if segment[0].isnumeric():
+#             length_so_far += int(segment.split('-')[0])
+#         else:
+#             lengths = segment[1:]
+#             start_idx, end_idx = lengths.split('-') # The end index is not inclusive
+#             len_motif_segment = int(end_idx) - int(start_idx) + 1
+#             motif_locations.append((length_so_far,
+#                 length_so_far + len_motif_segment - 1))
+#             length_so_far += len_motif_segment
+#     return motif_locations
+
+
 def motif_locations_from_contig(sample_contig):
+    # * modified: add segment residue indices to slice motif structure from given native binder
     # Parse contig.
     length_so_far = 0
     motif_locations = []
+    source_segments = []
     for segment in sample_contig.split(','):
-        if segment[0].isnumeric():
+        if segment[0].isnumeric():     # 38-38
             length_so_far += int(segment.split('-')[0])
         else:
-            lengths = segment[1:]
+            lengths = segment[1:]      # A67-92
             start_idx, end_idx = lengths.split('-') # The end index is not inclusive
-            len_motif_segment = int(end_idx) - int(start_idx) + 1
+            len_motif_segment = int(end_idx) - int(start_idx) + 1    # 26
             motif_locations.append((length_so_far,
-                length_so_far + len_motif_segment - 1))
+                length_so_far + len_motif_segment - 1))     # (38, 63)
+            source_segments.append((int(start_idx), int(end_idx)))
             length_so_far += len_motif_segment
-    return motif_locations
+    return motif_locations, source_segments
+
 
 def process_contig(sample_contig, all_chain_feats):
     """process_contig extracts a list of rigids corresponding to the
@@ -123,7 +146,6 @@ def process_contig(sample_contig, all_chain_feats):
     return motif_rigids, motif_locations, length_so_far, motif_aatypes, motif_atom_positions
 
 def load_contig_test_case(row):
-    print(row['target'])
     motif_chain_feats = process_motif_row(row)
     motif_length = row.length
     motif_contig = row.contig
@@ -153,10 +175,11 @@ def load_contig_test_case(row):
         'motif_atom_positions': motif_atom_positions,#[torch.Size([20, 37, 3]), torch.Size([20, 37, 3])]
     }
     return contig_test_case
+
 def load_contigs_by_test_case(inpaint_df):
     contigs_by_test_case = {}
     for _, row in inpaint_df.iterrows():
-        name = str(row.target)
+        name = str(row.pdb_name)   # *
         contigs_by_test_case[name] = load_contig_test_case(row)
     return contigs_by_test_case
 
@@ -198,3 +221,15 @@ def save_motifs(csv_path, motif_segments_base_dir):
         with open(fn, 'wb') as f:
             pkl.dump(motif_segments, f)
 
+def run():
+    motif_segments_base_dir = "./motif_scaffolding//targets/"
+    target_csv = "./motif_scaffolding//benchmark.csv"
+
+    # Read model checkpoint.
+    print('Starting inference')
+    start_time = time.time()
+    save_motifs(target_csv, motif_segments_base_dir)
+    print(f'Finished in {time.time() - start_time}s')
+
+if __name__ == '__main__':
+    run()

@@ -27,8 +27,9 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     '--csv_file',
     help='Path to directory with PDB files.',
-    type=str,)
-
+    type=str,
+    default='/Users/linjie/projects/protein-frame-flow_gpuold/cd3_ucht1_RL/output_file.csv')
+    # default='/lustre/grp/cmclab/share/linj/frameflow_data/PPI/processed_ppi/domain_domain/val_cluster.csv')
 parser.add_argument(
     '--datatype',
     help='train or val',
@@ -38,8 +39,9 @@ parser.add_argument(
 parser.add_argument(
     '--write_dir',
     help='Path to write results to.',
-    type=str,)
-
+    type=str,
+    default='/Users/linjie/projects/protein-frame-flow_gpuold/cd3_ucht1_RL/pkl')
+    # default='/lustre/grp/cmclab/share/linj/frameflow_data/PPI/processed_ppi/domain_domain/val_pkl')
 parser.add_argument(
     '--num_processes',
     help='Number of processes.',
@@ -55,7 +57,7 @@ parser.add_argument(
     action='store_true')
 
 
-def generate_virtual_binder_feats(feats, binder_id):
+def generate_virtual_binder_feats(feats):
     '''this virtual binder is not used in model, just for code simplicity'''
     # with open(processed_path, 'rb')as f:
     #     feats = pickle.load(f)
@@ -67,7 +69,7 @@ def generate_virtual_binder_feats(feats, binder_id):
         new_feat = {}
         for k, v in feats.items():
             if k == 'chain_index':
-                new_feat[k] = np.concatenate([v, [binder_id]*binder_seq_len], axis=0)
+                new_feat[k] = np.concatenate([v, [11]*binder_seq_len], axis=0)
             elif k == 'modeled_idx':
                 new_feat[k] = np.concatenate([v,  list(range(v[-1]+1, v[-1]+1+binder_seq_len))], axis=0)
             else:
@@ -119,8 +121,6 @@ def process_file(row, write_dir):
     all_seqs = set()
     for chain_id, chain in struct_chains.items():
         # Convert chain id into int
-        if chain_id != metadata['target_id']:
-            continue
         chain_id = du.chain_str_to_int(chain_id)
         chain_prot = parsers.process_chain(chain, chain_id)
         chain_dict = dataclasses.asdict(chain_prot)
@@ -133,9 +133,6 @@ def process_file(row, write_dir):
     #     metadata['quaternary_category'] = 'heteromer'
     complex_feats = du.concat_np_features(struct_feats, False)
 
-    binder_id = du.chain_str_to_int(row['chain2_id'])
-    complex_feats = generate_virtual_binder_feats(complex_feats, binder_id)    # only used in binder design task
-
     # Process geometry features
     complex_aatype = complex_feats['aatype']
     metadata['seq_len'] = len(complex_aatype)
@@ -147,6 +144,45 @@ def process_file(row, write_dir):
     # metadata['modeled_seq_len'] = max_modeled_idx - min_modeled_idx + 1
     metadata['modeled_seq_len'] = len(modeled_idx)
     complex_feats['modeled_idx'] = modeled_idx
+    
+    # try:
+    #     # MDtraj
+    #     traj = md.load(file_path)
+    #     # SS calculation
+    #     pdb_ss = md.compute_dssp(traj, simplified=True)
+    #     # DG calculation
+    #     pdb_dg = md.compute_rg(traj)
+    #     # os.remove(file_path)
+    #     chain_dict['ss'] = pdb_ss[0]
+    #     metadata['coil_percent'] = np.sum(pdb_ss == 'C') / metadata['modeled_seq_len']
+    #     metadata['helix_percent'] = np.sum(pdb_ss == 'H') / metadata['modeled_seq_len']
+    #     metadata['strand_percent'] = np.sum(pdb_ss == 'E') / metadata['modeled_seq_len']
+    #
+    #     # Radius of gyration
+    #     metadata['radius_gyration'] = pdb_dg[0]
+    #
+    #     # added on 1009: interface positions
+    #
+    #     complex_feats['target_interface_residues'] = ast.literal_eval(row['chain1_residues'])
+    #     complex_feats['binder_interface_residues'] = ast.literal_eval(row['chain2_residues'])
+    #     complex_feats['contact_pairs'] = [('R', 'L', pair[0], pair[1]) for pair in
+    #                                       ast.literal_eval(row['contact_pairs10A'])]
+    #     # Write features to pickles.
+    #     if not os.path.exists(processed_path):
+    #         du.write_pkl(processed_path, complex_feats)
+    #
+    #     # Return metadata
+    #     return metadata
+    #
+    # except Exception as e:
+    #     # os.remove(file_path)
+    #     print(e)
+    #     return None
+    #     # raise errors.DataError(f'Mdtraj failed with error {e}')
+
+    # complex_feats['target_interface_residues'] = ast.literal_eval(row['chain1_residues'])
+
+    complex_feats = generate_virtual_binder_feats(complex_feats)    # only used in binder design task
 
     complex_feats['target_interface_residues'] = row['chain1_residues']
     if 'chain2_residues' in row.keys():
@@ -239,7 +275,6 @@ if __name__ == "__main__":
     # Don't use GPU
     args = parser.parse_args()
     main(args)
-
 
 
 

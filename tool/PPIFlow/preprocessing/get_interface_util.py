@@ -62,7 +62,7 @@ def main():
     args = parser.parse_args()
     print(args)
     start_time = time()
-
+    # pdbdir = "/lustre/grp/cmclab/share/guoly/ppi/pinder/2024-02/pdbs"
     pdbdir = "/Users/linjie/projects/protein-frame-flow_gpuold/apdb/pdb"
     df = pd.read_csv(args.input)
     df['pdbfile'] = df['PDBID'].apply(lambda x: f"{pdbdir}/{x}.pdb")
