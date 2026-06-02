@@ -12,6 +12,7 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_only
 from motif_scaffolding import save_motif_segments
 from core.utils import rigid_utils as ru
 
+
 class LengthDataset(torch.utils.data.Dataset):
     def __init__(self, samples_cfg):
         self._samples_cfg = samples_cfg
@@ -38,12 +39,6 @@ class LengthDataset(torch.utils.data.Dataset):
         batch = {
             'num_res': num_res,
             'sample_id': sample_id,
-            'aatype': torch.tensor([0]*num_res),
-            'pdb_name': f"len{num_res}",
-            'res_mask': torch.ones(num_res, dtype=torch.int),
-            'chain_idx': torch.zeros(num_res, dtype=torch.int),
-            # 'diffuse_mask': torch.ones(num_res),
-            # 'hotspot_mask': torch.zeros(num_res),
         }
         return batch
 
@@ -52,8 +47,6 @@ class ScaffoldingDataset(torch.utils.data.Dataset):
     def __init__(self, samples_cfg):
         self._samples_cfg = samples_cfg
         self._benchmark_df = pd.read_csv(self._samples_cfg.csv_path)
-        if self._benchmark_df['length'].dtype == int:
-            self._benchmark_df['length'] = self._benchmark_df['length'].astype(str)
         if self._samples_cfg.target_subset is not None:
             self._benchmark_df = self._benchmark_df[
                 self._benchmark_df.target.isin(self._samples_cfg.target_subset)
@@ -85,6 +78,8 @@ class ScaffoldingDataset(torch.utils.data.Dataset):
         motif_segments = [
             torch.tensor(motif_segment, dtype=torch.float64)
             for motif_segment in motif_contig_info['motif_segments']]
+
+        import pdb; pdb.set_trace()
         motif_locations  = []
         if isinstance(target_row.length, str):
             lengths = target_row.length.split('-')
@@ -102,9 +97,11 @@ class ScaffoldingDataset(torch.utils.data.Dataset):
         diffuse_mask = torch.ones(sampled_mask_length)#torch.Size([92])
         trans_1 = torch.zeros(sampled_mask_length, 3)#torch.Size([92, 3])
         rotmats_1 = torch.eye(3)[None].repeat(sampled_mask_length, 1, 1)#torch.Size([92, 3, 3])
-        aatype = torch.zeros(sampled_mask_length, dtype=torch.int64)#torch.Size([92])
+        aatype = torch.zeros(sampled_mask_length)#torch.Size([92])
+
+        import pdb; pdb.set_trace()
+
         for (start, end), motif_pos, motif_aatype in zip(motif_locations, motif_segments, motif_contig_info['aatype']):
-            motif_aatype[motif_aatype==20] = 21
             diffuse_mask[start:end+1] = 0.0
             motif_rigid = ru.Rigid.from_tensor_7(motif_pos)
             motif_trans = motif_rigid.get_trans()
@@ -114,6 +111,9 @@ class ScaffoldingDataset(torch.utils.data.Dataset):
             aatype[start:end+1] = motif_aatype
         motif_com = torch.sum(trans_1, dim=-2, keepdim=True) / torch.sum(~diffuse_mask.bool())
         trans_1 = diffuse_mask[:, None] * trans_1 + (1 - diffuse_mask[:, None]) * (trans_1 - motif_com)
+
+        import pdb
+
         return {
             'target': target,
             'sample_id': sample_id,
@@ -121,9 +121,7 @@ class ScaffoldingDataset(torch.utils.data.Dataset):
             'rotmats_1': rotmats_1,
             'diffuse_mask': diffuse_mask,
             'aatype': aatype,
-            'chain_idx': torch.zeros_like(aatype, dtype=torch.int)
         }
-
 
 
 def get_sampled_mask(contigs, length, rng=None, num_tries=1000000):

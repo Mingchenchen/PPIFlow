@@ -18,6 +18,7 @@ Protein = protein.Protein
 
 # Global map from chain characters to integers.
 ALPHANUMERIC = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+# ALPHANUMERIC = string.ascii_letters + string.digits + ' '
 CHAIN_TO_INT = {
     chain_char: i for i, chain_char in enumerate(ALPHANUMERIC)
 }

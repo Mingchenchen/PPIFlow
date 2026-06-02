@@ -69,11 +69,13 @@ def _data_source_filter(data_csv):
 
 def _crop_long_motif(input_list):
     if len(input_list) <= 20:
-        return input_list, []
-    n = random.randint(3, 20)
+        return input_list, []  # 如果长度≤20，返回原列表和空补集
+    n = random.randint(3, 20)  # 随机截取长度
     max_start = len(input_list) - n
     start = random.randint(0, max_start)
+    # 截取的子列表
     cropped = input_list[start: start + n]
+    # 补集 = 原列表去掉截取部分
     complement = input_list[:start] + input_list[start + n:]
     return cropped, complement
 
@@ -146,12 +148,12 @@ def _sample_monomer_motif_mask(batch, monomer_motif_cfg):
         Maximum number of motif segments.
     """
     # Sample number of motif residues
-    num_res = batch['residue_index'].shape[0]
+    num_res = batch['residue_index'].shape[0]   # *
     motif_n_res = np.random.randint(
         np.floor(num_res * monomer_motif_cfg.min_motif_percent),
         np.ceil(num_res * monomer_motif_cfg.max_motif_percent)
     )
-    motif_n_res = max(motif_n_res, 3)
+    motif_n_res = max(motif_n_res, 3)    # fix-bug
 
     # Sample number of motif segments
     motif_n_seg = np.random.randint(
@@ -160,7 +162,7 @@ def _sample_monomer_motif_mask(batch, monomer_motif_cfg):
     )
 
     if motif_n_seg >= motif_n_res:
-        motif_n_seg = motif_n_seg - 1
+        motif_n_seg = motif_n_seg - 1     # fix-bug
 
     # Sample motif segments
     indices = sorted(np.random.choice(motif_n_res - 1, motif_n_seg - 1, replace=False) + 1)
@@ -173,7 +175,7 @@ def _sample_monomer_motif_mask(batch, monomer_motif_cfg):
     random.shuffle(segs)
     motif_mask = torch.tensor([int(elt) for elt in ''.join(segs)], dtype=torch.int)
     scaffold_mask = 1 - motif_mask
-    return scaffold_mask * batch['bb_mask']
+    return scaffold_mask * batch['bb_mask']    # *
 
 
 def _process_csv_row(csv_row, motif_cfg=None):
@@ -183,6 +185,10 @@ def _process_csv_row(csv_row, motif_cfg=None):
 
     binder_interface_label = 'binder_interface_residues'
     target_interface_label = 'target_interface_residues'
+    # if 'binder_label' in csv_row.keys():    # v1 data
+    #     binder_interface_label = 'binder_interface_residues' if csv_row['binder_label'] == 'L' else 'target_interface_residues'
+    #     target_interface_label = 'target_interface_residues' if csv_row['binder_label'] == 'L' else 'binder_interface_residues'
+    #     # binder_motif_label = 'binder_motif_residues' if csv_row['binder_label'] == 'L' else 'target_motif_residues'
 
     # binder motif mask
     if (csv_row['num_chains'] == 2) and ('binder_motif' in processed_feats) and motif_cfg:
@@ -198,15 +204,19 @@ def _process_csv_row(csv_row, motif_cfg=None):
         monomer_motif_mask = _sample_monomer_motif_mask(processed_feats, motif_cfg)
     else:
         monomer_motif_mask = None
-    processed_feats['monomer_motif_mask'] = monomer_motif_mask
+    processed_feats['monomer_motif_mask'] = monomer_motif_mask     # fix-modeled-res
+
+    # all_chain_idx, counts = np.unique(processed_feats['chain_index'], return_counts=True)
 
     # reset chain index as binder=1 target=0, or all=0 if it is a monomer
     new_chain_idx = np.zeros_like(processed_feats['residue_index'])
+    # if all_chain_idx.size == 2:
     if csv_row['num_chains'] == 2:
         if pd.isnull(csv_row['binder_id']):
             binder_chain_id = -1
         else:
             binder_chain_id = du.chain_str_to_int(csv_row['binder_id'])
+        # binder_chain_id = du.chain_str_to_int(csv_row['binder_label'])
         binder_chain_index = np.nonzero(processed_feats['chain_index'] == binder_chain_id)[0]
         new_chain_idx[binder_chain_index] = 1
     processed_feats['chain_index'] = new_chain_idx
@@ -231,16 +241,25 @@ def _process_csv_row(csv_row, motif_cfg=None):
         binder_motif_mask = torch.tensor(binder_motif_mask, dtype=int)
         hotspot_interface_mask = hotspot_interface_mask * (new_chain_idx == 0)
         hotspot_interface_mask = torch.tensor(hotspot_interface_mask, dtype=int)
-    processed_feats['hotspot_interface_mask'] = hotspot_interface_mask
+    processed_feats['hotspot_interface_mask'] = hotspot_interface_mask    # fix-modeled-res
     processed_feats['binder_motif_mask'] = binder_motif_mask
 
-    # leave out non-tensor data
+    # leave out non-tensor data      # add-mono
     processed_feats = {k: v for k, v in processed_feats.items() if
                        k not in ['target_interface_residues', 'binder_interface_residues', 'contact_pairs', 'contig', 'length', 'binder_motif']}
 
+    # Only take modeled residues.   done: should use np.where, and then we may open the modeled seq len filter
+    # modeled_idx = processed_feats['modeled_idx']
+    # min_idx = np.min(modeled_idx)
+    # max_idx = np.max(modeled_idx)
+    # del processed_feats['modeled_idx']
+    # processed_feats = tree.map_structure(
+    #     lambda x: x[min_idx:(max_idx + 1)], processed_feats)
+
     # Only take modeled residues.
-    modeled_idx = processed_feats.pop('modeled_idx')
-    if len(modeled_idx) != len(processed_feats['bb_mask']):
+    modeled_idx = processed_feats.pop('modeled_idx')     # fix-modeled-res
+    if len(modeled_idx) != len(processed_feats['bb_mask']):    # contains non canonical residues
+        # import pdb; pdb.set_trace()
         processed_feats = tree.map_structure(lambda x: x[modeled_idx] if x is not None else None, processed_feats)
 
     # Run through OpenFold data transforms.
@@ -259,9 +278,10 @@ def _process_csv_row(csv_row, motif_cfg=None):
     # reset residue index
     # Re-number residue indices for each chain such that it starts from 1.
     # Randomize chain indices.
-    if csv_row['num_chains'] == 1:
+    if csv_row['num_chains'] == 1:    # todo: this should be easier
         chain_idx = processed_feats['chain_index']
         res_idx = processed_feats['residue_index']
+        # target_interface_mask = None
         new_res_idx = np.zeros_like(res_idx)
         new_chain_idx = np.zeros_like(res_idx)
         all_chain_idx = np.unique(chain_idx).tolist()
@@ -272,9 +292,10 @@ def _process_csv_row(csv_row, motif_cfg=None):
             chain_mask = (chain_idx == chain_id).astype(int)
             chain_min_idx = np.min(res_idx + (1 - chain_mask) * 1e3).astype(int)
             new_res_idx = new_res_idx + (res_idx - chain_min_idx + 1) * chain_mask
+            # Shuffle chain_index
             replacement_chain_id = shuffled_chain_idx[i]
             new_chain_idx = new_chain_idx + replacement_chain_id * chain_mask
-        processed_feats['chain_idx'] = new_chain_idx
+        processed_feats['chain_idx'] = new_chain_idx     # fix-modeled-res
     else:
         assert csv_row['num_chains'] == 2
         new_res_idx = np.zeros_like(processed_feats['residue_index'])
@@ -293,15 +314,16 @@ def _process_csv_row(csv_row, motif_cfg=None):
         'rotmats_1': rotmats_1,
         'trans_1': trans_1,
         'res_mask': res_mask,
-        'chain_idx': torch.tensor(processed_feats['chain_index']),
+        #'chain_idx': torch.tensor(new_chain_idx),
+        'chain_idx': torch.tensor(processed_feats['chain_index']),  # fix-modeled-res
         'res_idx': torch.tensor(new_res_idx),
         'original_res_idx': torch.tensor(processed_feats['residue_index']),
-        'target_interface_mask': processed_feats['target_interface_mask'],
-        'binder_interface_mask': processed_feats['binder_interface_mask'],
-        'hotspot_interface_mask': processed_feats['hotspot_interface_mask'],
-        'binder_motif_mask': processed_feats['binder_motif_mask'],
-        'monomer_motif_mask': processed_feats['monomer_motif_mask'],
-        'all_atom_positions': chain_feats['all_atom_positions'],
+        'target_interface_mask': processed_feats['target_interface_mask'],    # fix-modeled-res
+        'binder_interface_mask': processed_feats['binder_interface_mask'],    # fix-modeled-res
+        'hotspot_interface_mask': processed_feats['hotspot_interface_mask'],   # fix-modeled-res
+        'binder_motif_mask': processed_feats['binder_motif_mask'],     # fix-modeled-res
+        'monomer_motif_mask': processed_feats['monomer_motif_mask'],    # fix-modeled-res
+        'all_atom_positions': chain_feats['all_atom_positions'],    # *
         'all_atom_mask': chain_feats['all_atom_mask'],
     }
     output_feats = {k: v for k, v in output_feats.items() if v is not None}
@@ -361,6 +383,38 @@ class BaseDataset(Dataset):
     def _filter_metadata(self, raw_csv: pd.DataFrame) -> pd.DataFrame:
         pass
 
+    # def _create_split(self, data_csv):
+    #     # Training or validation specific logic.
+    #     if self.is_training:
+    #         self.csv = data_csv
+    #         self._log.info(
+    #             f'Training: {len(self.csv)} examples')
+    #     else:
+    #         if self._dataset_cfg.max_eval_length is None:
+    #             eval_lengths = data_csv.modeled_seq_len
+    #         else:
+    #             eval_lengths = data_csv.modeled_seq_len[
+    #                 data_csv.modeled_seq_len <= self._dataset_cfg.max_eval_length
+    #                 ]
+    #         all_lengths = np.sort(eval_lengths.unique())
+    #         length_indices = (len(all_lengths) - 1) * np.linspace(
+    #             0.0, 1.0, self.dataset_cfg.num_eval_lengths)
+    #         length_indices = length_indices.astype(int)
+    #         eval_lengths = all_lengths[length_indices]
+    #         eval_csv = data_csv[data_csv.modeled_seq_len.isin(eval_lengths)]
+    #
+    #         # Fix a random seed to get the same split each time.
+    #         eval_csv = eval_csv.groupby('modeled_seq_len').sample(
+    #             self.dataset_cfg.samples_per_eval_length,
+    #             replace=True,
+    #             random_state=123
+    #         )
+    #         eval_csv = eval_csv.sort_values('modeled_seq_len', ascending=False)
+    #         self.csv = eval_csv
+    #         self._log.info(
+    #             f'Validation: {len(self.csv)} examples with lengths {eval_lengths}')
+    #     self.csv['index'] = list(range(len(self.csv)))
+
     def process_csv_row(self, csv_row):
         path = csv_row['processed_path']
         seq_len = csv_row['modeled_seq_len']
@@ -378,25 +432,27 @@ class BaseDataset(Dataset):
             self._cache[path] = processed_row
         return processed_row
 
+
     def _sample_hotspot_mask(self, feats):
+        # mask_label = 'hotspot_interface_mask' if 'hotspot_interface_mask' in feats else 'target_interface_mask'
         mask_label = 'target_interface_mask'
-        if torch.sum(feats[mask_label] == 1).item()==0:
+        if torch.sum(feats[mask_label] == 1).item()==0:#没有hotspot
             hotspot_mask = torch.zeros_like(feats[mask_label])
         else:
             target_interface_index = torch.nonzero(feats[mask_label] == 1).reshape(-1)
             if self._dataset_cfg.define_hotspots:
                 hotspot_index = torch.range(0, target_interface_index.shape[0] - 1, dtype=torch.long)
             else:
-                try:
+                try:    # *
                     hotspot_num = self._rng.integers(
-                        low=math.ceil(target_interface_index.shape[0] * self._dataset_cfg.min_hotspot_ratio),
-                        high=math.ceil(target_interface_index.shape[0] * self.dataset_cfg.max_hotspot_ratio),
+                        low=math.ceil(target_interface_index.shape[0] * self._dataset_cfg.min_hotspot_ratio),   # * 0.05
+                        high=math.ceil(target_interface_index.shape[0] * self.dataset_cfg.max_hotspot_ratio),   # * 0.33
                         size=(1,)
                     )
                 except:
                     hotspot_num = self._rng.integers(
-                        low=math.ceil(target_interface_index.shape[0] * self._dataset_cfg.min_hotspot_ratio),
-                        high=math.ceil(target_interface_index.shape[0] * self.dataset_cfg.max_hotspot_ratio)+1,
+                        low=math.ceil(target_interface_index.shape[0] * self._dataset_cfg.min_hotspot_ratio),  # * 0.05
+                        high=math.ceil(target_interface_index.shape[0] * self.dataset_cfg.max_hotspot_ratio)+1,  # * 0.33
                         size=(1,)
                     )
                 hotspot_num = max(hotspot_num.item(), self._dataset_cfg.samples_min_hotspots)
@@ -420,8 +476,11 @@ class BaseDataset(Dataset):
         diffuse_index = torch.nonzero(feats['chain_idx'] != target_chain_id).reshape(-1)
         diffuse_mask = torch.zeros(feats['chain_idx'].shape, dtype=torch.int)
         diffuse_mask[diffuse_index] = 1  # 0:motif, 1:to diffuse
-        if torch.sum(diffuse_mask) < 1:
+        # if 'plddt_mask' in feats:
+        #     diffuse_mask = diffuse_mask * feats['plddt_mask']
+        if torch.sum(diffuse_mask) < 1:    # Should only happen rarely.
             diffuse_mask = torch.ones_like(diffuse_mask)
+        # hotspot_mask = self._sample_hotspot_mask(feats, define_hotspots)
         diffuse_mask = diffuse_mask.int()
         return diffuse_mask
 
@@ -435,7 +494,11 @@ class BaseDataset(Dataset):
             (feats['chain_idx'] != target_chain_id) & (feats['binder_motif_mask'] != 1),
             1, 0
         )
+
+        # if 'plddt_mask' in feats:
+        #     diffuse_mask = diffuse_mask * feats['plddt_mask']
         if torch.sum(diffuse_mask) < 1:
+            # Should only happen rarely.
             diffuse_mask = torch.ones_like(diffuse_mask)
         diffuse_mask = diffuse_mask.int()
         return diffuse_mask
@@ -445,18 +508,88 @@ class BaseDataset(Dataset):
             feats['monomer_motif_mask'] != 1,
             1, 0
         )
-        if torch.sum(diffuse_mask) < 1:
+        if torch.sum(diffuse_mask) < 1:   # Should only happen rarely.
             diffuse_mask = torch.ones_like(diffuse_mask)
         return diffuse_mask
 
+    # def setup_rotamer(self, processed_feats, rotamer_cfg):
+    #     # binder_rotamer
+    #
+    #     binder_interface_label = 'binder_interface_residues'
+    #
+    #     # get binder_rotamer residues mask
+    #     if rotamer_cfg.define_rotamer:
+    #         sample_size = len(processed_feats[binder_interface_label])
+    #     else:
+    #         random_float = random.uniform(rotamer_cfg.min_rotamer_ratio,
+    #                                       rotamer_cfg.max_rotamer_ratio)  # * 0.2 - 0.6
+    #         sample_size = min(int(len(processed_feats[binder_interface_label]) * random_float),
+    #                           rotamer_cfg.samples_max_rotamer)  # rotamer cloud points的数量
+    #     binder_r_points = random.sample(processed_feats[binder_interface_label], sample_size)
+    #     binder_rotamer_mask = np.isin(processed_feats['residue_index'], binder_r_points)
+    #
+    #     new_chain_idx = processed_feats['chain_idx']
+    #     binder_rotamer_mask = binder_rotamer_mask * (new_chain_idx == 1)
+    #
+    #     if len(binder_rotamer_mask) != len(processed_feats['aatype']):
+    #         print(f'WARNING: binder_rotamer_mask and aatype features length not equal!  ',
+    #               len(new_chain_idx), len(binder_rotamer_mask), len(processed_feats['aatype']))
+    #         return None
+    #
+    #     processed_feats['rotamer_aatype'] = processed_feats['aatype'][binder_rotamer_mask == 1]
+    #     processed_feats['rotamer_atom_positions'] = processed_feats['atom_positions'][binder_rotamer_mask == 1]
+    #     processed_feats['rotamer_atom_mask'] = processed_feats['atom_mask'][binder_rotamer_mask == 1]
+    #
+    #
+    #     rotamer_feats = {
+    #         'aatype': torch.tensor(processed_feats['rotamer_aatype']).long(),  # values range from 0 to 19, 0 is ALA
+    #         'all_atom_positions': torch.tensor(processed_feats['rotamer_atom_positions']).double(),
+    #         'all_atom_mask': torch.tensor(processed_feats['rotamer_atom_mask']).double()
+    #     }
+    #     rotamer_feats = data_transforms.atom37_to_frames(rotamer_feats)
+    #     rigids_rc = rigid_utils.Rigid.from_tensor_4x4(rotamer_feats['rigidgroups_gt_frames'])[:, 0]
+    #     rotmats_rc = rigids_rc.get_rots().get_rot_mats()  # torch.Size([N_points, 3, 3])
+    #     trans_rc = rigids_rc.get_trans()  # torch.Size([N_points, 3])
+    #     aatype_rc = rotamer_feats['aatype']
+    #     rc_node_mask = torch.ones_like(aatype_rc, dtype=torch.float)
+    #     pad_size = rotamer_cfg.samples_max_rotamer - len(aatype_rc)   # pad to 16
+    #     # 对trans_rc进行padding (假设shape为[N, 3])
+    #     trans_rc = F.pad(trans_rc, (0, 0, 0, pad_size))
+    #     # 对rotmats_rc进行padding (假设shape为[N, 3, 3])
+    #     rotmats_rc = F.pad(rotmats_rc, (0, 0, 0, 0, 0, pad_size))
+    #     # 对aatype_rc进行padding (假设shape为[N])
+    #     aatype_rc = F.pad(aatype_rc, (0, pad_size))
+    #     # 对rc_mode_mask进行padding (假设shape为[N])
+    #     rc_node_mask = F.pad(rc_node_mask, (0, pad_size))
+    #     # pdb.set_trace()
+    #     rotamer_info = {
+    #         'method': 'gt_interface',
+    #         'rotamers': binder_r_points,
+    #         'rotamer_size': len(binder_r_points)
+    #     }
+    #
+    #     processed_feats.update({
+    #         'binder_rotamer_mask': binder_rotamer_mask,
+    #         'aatype_rc': aatype_rc,
+    #         'rotmats_rc': rotmats_rc,
+    #         'trans_rc': trans_rc,
+    #         'rc_node_mask': rc_node_mask,
+    #         'rotamer_info': rotamer_info
+    #     }
+    #     )
+    #
+    #     return processed_feats
+
+
     def post_process_feats(self, feats):
-        # Center based on motif locations
+        # Center based on motif locations, todo: target+motif center?
         motif_mask = 1 - feats['diffuse_mask']  # 1:motif 0:to diffuse
         trans_1 = feats['trans_1']
         motif_1 = trans_1 * motif_mask[:, None]
-        motif_com = torch.sum(motif_1, dim=0) / (torch.sum(motif_mask) + 1)
+        motif_com = torch.sum(motif_1, dim=0) / (torch.sum(motif_mask) + 1)  # *
         trans_1 -= motif_com[None, :]
         feats['trans_1'] = trans_1
+
         return feats
 
     def __getitem__(self, row_idx):
@@ -465,7 +598,9 @@ class BaseDataset(Dataset):
             csv_row = self.csv.iloc[row_idx]
             feats = self.process_csv_row(csv_row)
             if feats is not None:
+                # rng = self._rng if self.is_training else np.random.default_rng(seed=123)
                 if csv_row['num_chains'] == 1:   # selected item is monomer
+                    # if self.task == 'binder_motif' and (np.random.rand() < 0.5):
                     if np.random.rand() < 0.5 and ('monomer_motif_mask' in feats):
                         feats['diffuse_mask'] = self.setup_monomer_inpainting(feats)
                     else:
@@ -475,8 +610,11 @@ class BaseDataset(Dataset):
                     feats['hotspot_mask'] = hotspot_mask.int()
                 else:
                     assert csv_row['num_chains'] == 2   # selected item is complex
-                    if self.task == 'binder_motif' and (np.random.rand() < 0.33):
+                    if self.task == 'binder_motif' and (np.random.rand() < 0.33): # and ('binder_motif' in feats):  # * to check
+                        #if np.random.rand() < 0.5:
                         feats['diffuse_mask'] = self.setup_binder_mask_with_motif(feats)
+                        # else:
+                        #     feats['diffuse_mask'] = self.setup_binder_mask(feats)
                     else:
                         feats['diffuse_mask'] = self.setup_binder_mask(feats)
 
@@ -484,6 +622,7 @@ class BaseDataset(Dataset):
                     feats['hotspot_mask'] = hotspot_mask
                     feats = self.post_process_feats(feats)
 
+                # Storing the csv index is helpful for debugging.
                 feats['csv_idx'] = torch.ones(1, dtype=torch.long) * row_idx
                 return feats
 
@@ -499,7 +638,7 @@ class PpiDataset(BaseDataset):
             dataset_cfg,
             is_training,
             task,
-            is_additional_val=False
+            is_additional_val=False      # * multi-val
     ):
         self._log = logging.getLogger(__name__)
         self._is_training = is_training
@@ -511,7 +650,7 @@ class PpiDataset(BaseDataset):
         if self._is_training == True:
             csv_path = self.dataset_cfg.train_csv_path
             datatype = "Train"
-        else:
+        else:                       # * multi-val
             if is_additional_val:
                 csv_path = self.dataset_cfg.val_csv_path1
             else:
@@ -521,11 +660,14 @@ class PpiDataset(BaseDataset):
         # Process clusters
         self.csv = pd.read_csv(csv_path)
         self.csv = self._filter_metadata(self.csv)
+        # self.csv = self.csv.sort_values(
+        #     'modeled_seq_len', ascending=False)
         self.csv.reset_index(drop=False, names=['original_index'], inplace=True)
         self.csv['index'] = list(range(len(self.csv)))
         self._log.info(f'{datatype} data num: {len(self.csv)}')
 
     def _filter_metadata(self, raw_csv):
+    #     """Filter metadata. (datav3/v4)"""
         data_csv = raw_csv
         filter_cfg = self.dataset_cfg.filter
         if filter_cfg.activate:
@@ -536,14 +678,19 @@ class PpiDataset(BaseDataset):
             else:
                 print(f"validation filter_cfg.max_complex_len:{filter_cfg.max_complex_len}")
                 data_csv = data_csv[data_csv['seq_len'] <= filter_cfg.max_complex_len]
+            # data_csv = data_csv[data_csv['seq_len'] == data_csv['modeled_seq_len']]       # fix-modeled-res
             data_csv = data_csv[data_csv['homo_dimer_rate'] <= filter_cfg.max_homo_dimer_rate]
             data_csv = _max_coil_filter(data_csv, filter_cfg.max_coil_percent)
+            # data_csv = data_csv[data_csv['binder_seq_len'] < data_csv['target_seq_len']]
             data_csv = data_csv[data_csv['binder_seq_len'] <= filter_cfg.max_binder_len]
             data_csv = data_csv[data_csv['target_seq_len'] >= filter_cfg.min_target_len]
+            # data_csv = data_csv[data_csv['len_ratio'] <= filter_cfg.max_binder_target_len_ratio]
 
             if not self._is_training:
                 data_csv = data_csv[data_csv['binder_seq_len'] <= data_csv['target_seq_len']]
-
+            # data_csv = _rog_filter(data_csv, filter_cfg.rog_quantile)
+            # if filter_cfg.no_ddi:
+            #     data_csv = _data_source_filter(data_csv)
         set_type = 'train' if self._is_training else 'val'
         print(f"(ppi) raw {set_type} data {len(raw_csv)},after filter data num: {len(data_csv)}, cluster: {len(data_csv['cluster'].unique())}.")
 
@@ -558,7 +705,7 @@ class Ppi_Monomer_Dataset(BaseDataset):
             dataset_cfg,
             is_training,
             task,
-            is_additional_val=False
+            is_additional_val=False      # * multi-val
     ):
         self._log = logging.getLogger(__name__)
         self._is_training = is_training
@@ -571,7 +718,7 @@ class Ppi_Monomer_Dataset(BaseDataset):
         if self._is_training == True:
             csv_path = self.dataset_cfg.train_csv_path
             datatype = "Train"
-        else:
+        else:                       # * multi-val
             if is_additional_val:
                 csv_path = self.dataset_cfg.val_csv_path1
             else:
@@ -581,6 +728,8 @@ class Ppi_Monomer_Dataset(BaseDataset):
         # Process clusters
         self.csv = pd.read_csv(csv_path)
         self.csv = self._filter_metadata(self.csv)
+        # self.csv = self.csv.sort_values(
+        #     'modeled_seq_len', ascending=False)
         self.csv.reset_index(drop=False, names=['original_index'], inplace=True)
         self.csv['index'] = list(range(len(self.csv)))
         self._log.info(f'{datatype} data num: {len(self.csv)}')
@@ -604,34 +753,47 @@ class Ppi_Monomer_Dataset(BaseDataset):
             else:
                 print(f"filter_cfg.max_complex_len:{filter_cfg.max_complex_len}")
                 data_csv = data_csv[data_csv['seq_len'] <= filter_cfg.max_complex_len]
+            # data_csv = data_csv[data_csv['seq_len'] == data_csv['modeled_seq_len']]          # fix-modeled-res
             data_csv = data_csv[data_csv['homo_dimer_rate'] <= filter_cfg.max_homo_dimer_rate]
             data_csv = _max_coil_filter(data_csv, filter_cfg.max_coil_percent)
+            # data_csv = data_csv[data_csv['binder_seq_len'] < data_csv['target_seq_len']]
             data_csv = data_csv[data_csv['binder_seq_len'] <= filter_cfg.max_binder_len]
             data_csv = data_csv[data_csv['target_seq_len'] >= filter_cfg.min_target_len]
+            # data_csv = data_csv[data_csv['len_ratio'] <= filter_cfg.max_binder_target_len_ratio]
 
             if not self._is_training:
                 data_csv = data_csv[data_csv['binder_seq_len'] <= data_csv['target_seq_len']]
+            # data_csv = _rog_filter(data_csv, filter_cfg.rog_quantile)
+            # if filter_cfg.no_ddi:
+            #     data_csv = _data_source_filter(data_csv)
         set_type = 'train' if self._is_training else 'val'
         print(f"(ppi_monomer) raw {set_type} ppi data {len(raw_csv)},after filter data num: {len(data_csv)}, cluster: {len(data_csv['cluster'].unique())}.")
         return data_csv
 
     def _filter_metadata_monomer(self, raw_csv):
         """Filter metadata monomer."""
-        filter_cfg = self.dataset_cfg.filter
+        filter_cfg = self.dataset_cfg.filter     # add-mono
         data_csv = raw_csv[raw_csv['num_chains'] == 1]
         len_0 = len(data_csv)
         if len_0 > 0:
-            data_csv = data_csv[data_csv['seq_len'] <= filter_cfg.max_monomer_len]
+            data_csv = data_csv[data_csv['seq_len'] <= filter_cfg.max_monomer_len]    # *
+            # data_csv = data_csv[data_csv['seq_len'] >= filter_cfg.min_num_res]
+            # len2 = len(data_csv)
+            # data_csv = data_csv[data_csv['seq_len'] == data_csv['modeled_seq_len']]    # fix-modeled-res
             data_csv = _max_coil_filter(data_csv, filter_cfg.max_coil_percent)
+            # data_csv = _rog_filter(data_csv, filter_cfg.rog_quantile)
             set_type = 'train' if self._is_training else 'val'
             n_uniq_clusts = len(data_csv['cluster'].unique())
             print(f"raw {set_type} monomer data {len(raw_csv)},after filter data num: {len(data_csv)}, cluster: {n_uniq_clusts}.")
+        # data_csv = data_csv[: int(0.5*len(data_csv))]    # **  add-mono 2
+        # data_csv = data_csv.sample(frac=0.5)    # make approximately 1:1
         n_uniq_clusts = len(data_csv['cluster'].unique())
         print(f'(ppi_monomer) use monomer data: {len(data_csv)}, cluster: {n_uniq_clusts} ')
         return data_csv
 
 
 class PpiTestDataset(BaseDataset):
+
     def __init__(
             self,
             *,
@@ -647,10 +809,12 @@ class PpiTestDataset(BaseDataset):
         datatype = "Test"
         self.motif_cfg = self._dataset_cfg.motif if self.task == 'binder_motif' else None
         self.csv = pd.read_csv(csv_path)
+        # self.csv = self._filter_metadata(self.csv)
         self.csv.reset_index(drop=False, names=['original_index'], inplace=True)
         self.csv['index'] = list(range(len(self.csv)))
         self._log.info(f'{datatype} data num: {len(self.csv)}')
 
+        # self.batch_size = self.dataset_cfg.samples_batch_size if self.dataset_cfg.sample_original_binder_len else 1
         self.batch_size = self.dataset_cfg.samples_batch_size
         self.samples_per_target = dataset_cfg.samples_per_target
         assert self.samples_per_target % self.batch_size == 0
@@ -667,6 +831,7 @@ class PpiTestDataset(BaseDataset):
         for row_id in range(len(self.csv)):
             target_row = self.csv.iloc[row_id]
             for sample_id, blen in zip(range(self.samples_per_target), self.binder_len):
+                # sample_ids = torch.tensor([batch_size * sample_id + i for i in range(batch_size)])
                 all_sample_ids.append((target_row, sample_id, blen))
         self.all_sample_ids = all_sample_ids
 
@@ -676,6 +841,7 @@ class PpiTestDataset(BaseDataset):
         data_csv = raw_csv[raw_csv['target_seq_len'] <= filter_cfg.max_target_num_res]
         data_csv = data_csv[(data_csv['binder_seq_len'] <= filter_cfg.max_binder_num_res) & (
                     data_csv['binder_seq_len'] >= filter_cfg.min_binder_num_res)]
+        # data_csv = _max_coil_filter(data_csv, filter_cfg.max_coil_percent)
         print(f"raw data {len(raw_csv)}, after filter data num: {len(data_csv)}")
         return data_csv
 
@@ -689,10 +855,11 @@ class PpiTestDataset(BaseDataset):
 
         pdb_diffuse_mask = self.setup_binder_mask(feats)
         feats['diffuse_mask'] = pdb_diffuse_mask.int()
-        hotspot_mask = self.setup_target_hotspots(feats)
+        hotspot_mask = self.setup_target_hotspots(feats)  # * self._dataset_cfg.define_hotspots)
         feats['hotspot_mask'] = hotspot_mask.int()
 
         feats = self.post_process_feats(feats)
+
 
         target_index = np.nonzero(pdb_diffuse_mask == 0)[:, 0]
         target_feats = {
@@ -710,6 +877,7 @@ class PpiTestDataset(BaseDataset):
         res_mask = torch.ones(total_length, dtype=torch.int)
         chain_idx = torch.ones(total_length, dtype=torch.int)
         target_interface_mask = torch.zeros(total_length)
+        # res_idx = torch.tensor(np.hstack([target_feats['res_idx'], torch.arange(target_feats['res_idx'][-1]+1, target_feats['res_idx'][-1]+1+binder_len)]))
 
         trans_1[:target_len] = target_feats['trans_1']
         rotmats_1[:target_len] = target_feats['rotmats_1']
@@ -733,6 +901,7 @@ class PpiTestDataset(BaseDataset):
             'res_mask': res_mask,
             'chain_idx': chain_idx,
             'target_interface_mask': target_interface_mask
+            # 'res_idx': res_idx
         }
         return output_feats
 
@@ -754,6 +923,15 @@ class PpiScaffoldingTestDataset(BaseDataset):
             self._benchmark_df = self._benchmark_df.loc[self._benchmark_df['id'].isin(self.dataset_cfg.sample_pdbname)]
         self._benchmark_df.reset_index(drop=False, names=['original_index'], inplace=True)
         self._benchmark_df['index'] = list(range(len(self._benchmark_df)))
+        # if self._samples_cfg.target_subset is not None:
+        #     self._benchmark_df = self._benchmark_df[
+        #         self._benchmark_df.target.isin(self._samples_cfg.target_subset)
+        #     ]
+        # if len(self._benchmark_df) == 0:
+        #     raise ValueError('No targets found.')
+
+        # contigs_by_test_case = save_motif_segments.load_contigs_by_test_case(
+        #     self._benchmark_df)
 
         self.batch_size = self._dataset_cfg.samples_batch_size
         self.samples_per_target = self._dataset_cfg.samples_per_target
@@ -771,6 +949,7 @@ class PpiScaffoldingTestDataset(BaseDataset):
         for row_id in range(len(self._benchmark_df)):
             target_row = self._benchmark_df.iloc[row_id]
             for sample_id, blen in zip(range(self.samples_per_target), self.binder_len):
+                # sample_ids = torch.tensor([batch_size * sample_id + i for i in range(batch_size)])
                 all_sample_ids.append((target_row, sample_id, blen))
         self.all_sample_ids = all_sample_ids
 
@@ -779,11 +958,14 @@ class PpiScaffoldingTestDataset(BaseDataset):
         for segment in source_segments:
             binder_motif.extend(list(range(segment[0], segment[1]+1)))
 
+        # b_pair_idx = 3 if binder_id == 'L' else 2    # fix-bug, for inference arbitrary binder id
+        # t_pair_idx = 2 if binder_id == 'L' else 3
         b_pair_idx = 3
         t_pair_idx = 2
         new_contact_pairs = [pair for pair in feats['contact_pairs'] if pair[b_pair_idx] not in binder_motif]
         hotspot_interface_residues = [pair[t_pair_idx] for pair in new_contact_pairs]
         hotspot_interface_mask = torch.isin(feats['original_res_idx'], torch.tensor(hotspot_interface_residues))*(1-feats['diffuse_mask'])
+        # binder_motif_mask = torch.isin(feats['original_res_idx'], torch.tensor(binder_motif))*(1-feats['diffuse_mask'])
         return hotspot_interface_mask
 
     def __len__(self):
@@ -822,8 +1004,9 @@ class PpiScaffoldingTestDataset(BaseDataset):
         feat_tmp = du.read_pkl(csv_row['processed_path'])
         feats['contact_pairs'] = feat_tmp['contact_pairs']
         del feat_tmp
-        feats['hotspot_interface_mask'] = self._get_new_hotspot_interface(feats, original_source_segments)
-        feats['hotspot_mask'] = self.setup_target_hotspots(feats)
+        # feats['hotspot_interface_mask'] = self._get_new_hotspot_interface(feats, original_source_segments, 'L')
+        feats['hotspot_interface_mask'] = self._get_new_hotspot_interface(feats, original_source_segments)    # fix-bug, for inference arbitrary binder id
+        feats['hotspot_mask'] = self.setup_target_hotspots(feats)#self._dataset_cfg.define_hotspots=False
         #######################################
 
         target_index = np.nonzero(pdb_diffuse_mask == 0)[:, 0]
@@ -831,7 +1014,11 @@ class PpiScaffoldingTestDataset(BaseDataset):
         target_feats = {
             k: v[target_index] for k, v in feats.items() if k not in ['pdb_name', 'original_index', 'contact_pairs']
         }
-
+        # true_binder_feats = {
+        #     k: v[binder_index] for k, v in feats.items() if k not in ['pdb_name', 'original_index', 'contact_pairs']
+        # }
+        # if self._dataset_cfg.sample_original_binder_len == True:
+        #     binder_len = int(sum(pdb_diffuse_mask).item())
         target_len = len(target_index)
         total_length = target_len + sampled_binder_length
 
@@ -852,21 +1039,32 @@ class PpiScaffoldingTestDataset(BaseDataset):
         rotmats_1[:target_len] = target_feats['rotmats_1']
         aatype[:target_len] = target_feats['aatype']
         aatype[target_len:] = 20   # *
+        # trans_1[diffuse_mask == 0] = target_feats['trans_1']
+        # rotmats_1[diffuse_mask == 0] = target_feats['rotmats_1']
+        # aatype[diffuse_mask == 0] = target_feats['aatype']
+        # aatype[diffuse_mask == 1] = 20  # *
+        # res_mask[:target_len] = target_feats['res_mask']
         chain_idx[:target_len] = target_feats['chain_idx']
         target_interface_mask[:target_len] = target_feats['target_interface_mask']
         binder_motif_mask[:target_len] = 0
 
+
         # motif locations
         for generate_location, true_res_interval in zip(motif_locations, source_segments):
+            # import pdb; pdb.set_trace()
             start, end = generate_location
             j, k = true_res_interval
             start = target_len + start
             end = target_len + end
             diffuse_mask[start:end+1] = 0
-            trans_1[start:end+1] = feats['trans_1'][j:k+1]
+            # trans_1[start:end+1] = true_binder_feats['trans_1'][j:k+1]
+            # rotmats_1[start:end+1] = true_binder_feats['rotmats_1'][j:k+1]
+            # aatype[start:end+1] = true_binder_feats['aatype'][j:k+1]
+            trans_1[start:end+1] = feats['trans_1'][j:k+1]      # fix-bug
             rotmats_1[start:end+1] = feats['rotmats_1'][j:k+1]
             aatype[start:end+1] = feats['aatype'][j:k+1]
             binder_motif_mask[start:end+1] = 1
+
 
         output_feats = {
             'diffuse_mask': diffuse_mask,
