@@ -177,8 +177,8 @@ steps:
 These are consumed by `PPIFlowStep` when `gentype: binder`:
 
 - `input_pdb`: input complex PDB
-- `target_chain`: target protein chain ID
-- `binder_chain`: binder chain ID
+- `target_chain`: target protein chain ID in input_pdb
+- `binder_chain`: binder chain ID in input_pdb (remove this filed for target chain only)
 - `sample_hotspot_rate_min`
 - `sample_hotspot_rate_max`
 - `samples_min_length`
