@@ -48,6 +48,30 @@ from typing import Any
 
 _VALID_FILTER_OPS = (">", ">=", "<", "<=", "==", "!=")
 
+_AA1_TO_AA3 = {
+    "A": "ALA",
+    "C": "CYS",
+    "D": "ASP",
+    "E": "GLU",
+    "F": "PHE",
+    "G": "GLY",
+    "H": "HIS",
+    "I": "ILE",
+    "K": "LYS",
+    "L": "LEU",
+    "M": "MET",
+    "N": "ASN",
+    "P": "PRO",
+    "Q": "GLN",
+    "R": "ARG",
+    "S": "SER",
+    "T": "THR",
+    "V": "VAL",
+    "W": "TRP",
+    "Y": "TYR",
+    "X": "UNK",
+}
+
 def _parse_filter_string(expr: str) -> Dict[str, float]:
     """
     Parse filter expression string into dict form.
@@ -373,6 +397,198 @@ def _collect_pdb_and_seqs(
     return output_csv
 
 
+def _split_structure_and_seq_idx(pdbname: str) -> Tuple[str, Optional[int]]:
+    """
+    Split names like ``cd3d_cd3d_3_8`` into (``cd3d_cd3d_3``, 8).
+    """
+    name = os.path.splitext(os.path.basename(pdbname))[0]
+    parts = name.split("_")
+    if len(parts) > 2:
+        try:
+            return "_".join(parts[:-1]), int(parts[-1])
+        except ValueError:
+            pass
+    return name, None
+
+
+def _load_mpnn_sequence_templates(
+    mpnn_seqs_csv: str,
+) -> Tuple[
+    Dict[str, Dict[int, Dict[str, str]]],
+    Dict[str, Dict[str, str]],
+]:
+    """
+    Read mpnn_seqs.csv and return per-seq records plus first template per structure.
+    """
+    if not os.path.isfile(mpnn_seqs_csv):
+        raise FileNotFoundError(f"mpnn_seqs_csv not found: {mpnn_seqs_csv}")
+
+    sequence_rows: Dict[str, Dict[int, Dict[str, str]]] = {}
+    first_templates: Dict[str, Dict[str, str]] = {}
+
+    with open(mpnn_seqs_csv, newline="") as fh:
+        reader = csv.DictReader(fh)
+        required = {"link_name", "sequence_dict", "seq_idx"}
+        if not required.issubset(set(reader.fieldnames or [])):
+            raise ValueError(
+                f"{mpnn_seqs_csv} must contain columns {required}, "
+                f"got {reader.fieldnames}"
+            )
+
+        for row in reader:
+            link_name = (row.get("link_name") or "").strip()
+            seq_idx_str = (row.get("seq_idx") or "").strip()
+            sequence_dict_str = (row.get("sequence_dict") or "").strip()
+            if not link_name or not seq_idx_str or not sequence_dict_str:
+                continue
+
+            try:
+                seq_idx = int(seq_idx_str)
+                raw_sequence_dict = ast.literal_eval(sequence_dict_str)
+            except (ValueError, SyntaxError):
+                log.warning(
+                    "Could not parse sequence row in %s: link_name=%r seq_idx=%r",
+                    mpnn_seqs_csv,
+                    link_name,
+                    seq_idx_str,
+                )
+                continue
+
+            if not isinstance(raw_sequence_dict, dict):
+                log.warning(
+                    "sequence_dict is not a dict in %s: link_name=%r seq_idx=%r",
+                    mpnn_seqs_csv,
+                    link_name,
+                    seq_idx_str,
+                )
+                continue
+
+            structure_name = os.path.splitext(os.path.basename(link_name))[0].lower()
+            sequence_dict = {
+                str(chain): str(sequence)
+                for chain, sequence in raw_sequence_dict.items()
+            }
+
+            sequence_rows.setdefault(structure_name, {})[seq_idx] = sequence_dict
+            if structure_name not in first_templates:
+                first_templates[structure_name] = dict(sequence_dict)
+
+    return sequence_rows, first_templates
+
+
+def _sequence_residue(
+    sequence_rows: Dict[str, Dict[int, Dict[str, str]]],
+    structure_name: str,
+    seq_idx: Optional[int],
+    chain: str,
+    resseq: int,
+) -> Optional[str]:
+    """Return the one-letter amino acid at a 1-based residue position."""
+    if seq_idx is None:
+        return None
+
+    structure_sequences = sequence_rows.get(structure_name.lower())
+    if not structure_sequences:
+        return None
+
+    sequence_dict = structure_sequences.get(seq_idx)
+    if not sequence_dict:
+        return None
+
+    sequence = sequence_dict.get(chain)
+    if not sequence or resseq < 1 or resseq > len(sequence):
+        return None
+
+    return sequence[resseq - 1]
+
+
+def _parse_merge_seq(merge_seq: str) -> Dict[str, str]:
+    if not merge_seq or not merge_seq.strip():
+        return {}
+
+    try:
+        raw_merge_seq = ast.literal_eval(merge_seq)
+    except (ValueError, SyntaxError):
+        log.warning("Could not parse merge_seq: %r", merge_seq)
+        return {}
+
+    if not isinstance(raw_merge_seq, dict):
+        log.warning("merge_seq is not a dict: %r", merge_seq)
+        return {}
+
+    return {
+        str(chain): str(sequence)
+        for chain, sequence in raw_merge_seq.items()
+        if sequence is not None
+    }
+
+
+def _rewrite_pdb_chains_with_merge_seq(
+    src_pdb: str,
+    dst_pdb: str,
+    merge_seq: Dict[str, str],
+) -> None:
+    """
+    Write a PDB copy whose ATOM residue names match merge_seq by chain order.
+    """
+    residue_index_by_chain: Dict[str, Dict[Tuple[str, str], int]] = {}
+    short_chains = set()
+    unknown_chains = set()
+
+    with open(src_pdb, "r") as fh:
+        lines = fh.readlines()
+
+    output_lines: List[str] = []
+    for line in lines:
+        if not line.startswith("ATOM") or len(line) < 27:
+            output_lines.append(line)
+            continue
+
+        chain = line[21].strip()
+        sequence = merge_seq.get(chain)
+        if not sequence:
+            output_lines.append(line)
+            continue
+
+        residue_key = (line[22:26], line[26])
+        chain_indices = residue_index_by_chain.setdefault(chain, {})
+        if residue_key not in chain_indices:
+            chain_indices[residue_key] = len(chain_indices)
+
+        seq_pos = chain_indices[residue_key]
+        if seq_pos >= len(sequence):
+            if chain not in short_chains:
+                log.warning(
+                    "merge_seq for chain %s in %s is shorter than the PDB chain; "
+                    "leaving remaining residues unchanged",
+                    chain,
+                    src_pdb,
+                )
+                short_chains.add(chain)
+            output_lines.append(line)
+            continue
+
+        aa1 = sequence[seq_pos].upper()
+        aa3 = _AA1_TO_AA3.get(aa1)
+        if not aa3:
+            if chain not in unknown_chains:
+                log.warning(
+                    "Unknown amino acid %r in merge_seq chain %s for %s; "
+                    "leaving affected residues unchanged",
+                    aa1,
+                    chain,
+                    src_pdb,
+                )
+                unknown_chains.add(chain)
+            output_lines.append(line)
+            continue
+
+        output_lines.append(f"{line[:17]}{aa3:>3}{line[20:]}")
+
+    with open(dst_pdb, "w") as fh:
+        fh.writelines(output_lines)
+
+
 # ===========================================================================
 # _build_fixed_positions_csv
 # ===========================================================================
@@ -382,6 +598,7 @@ def _build_fixed_positions_csv(
     rosetta_fix_output_dir: str,
     output_csv: str,
     gentype: str,
+    mpnn_seqs_csv: str,
     energy_threshold: float = -5,
 ) -> str:
     """
@@ -419,7 +636,7 @@ def _build_fixed_positions_csv(
 
     Output columns
     --------------
-    filename, fixed_positions
+    filename, fixed_positions, merge_seq
 
     filename uses structure name with .pdb suffix, e.g.:
         cd3d_cd3d_3.pdb
@@ -437,8 +654,12 @@ def _build_fixed_positions_csv(
     else:
         raise ValueError(f"Unsupported gentype: {gentype}")
 
+    sequence_rows, first_templates = _load_mpnn_sequence_templates(mpnn_seqs_csv)
+
     # structure_name -> chain -> resseq(int) -> min_energy(float)
     merged_energy: Dict[str, Dict[str, Dict[int, float]]] = {}
+    # structure_name -> chain -> resseq(int) -> lowest-energy residue aa
+    merged_fixed_aas: Dict[str, Dict[str, Dict[int, Tuple[float, str]]]] = {}
 
     for subdir_name, binder_chain in energy_specs:
         energy_csv = os.path.join(
@@ -466,12 +687,8 @@ def _build_fixed_positions_csv(
                     pdbpath = row.get("pdbpath", "")
                     pdbname = os.path.splitext(os.path.basename(pdbpath))[0]
 
-                # pdbname: cd3d_cd3d_3_8 -> structure: cd3d_cd3d_3
-                parts = pdbname.split("_")
-                if len(parts) > 2:
-                    structure_name = "_".join(parts[:-1])
-                else:
-                    structure_name = parts[0]
+                structure_name, seq_idx = _split_structure_and_seq_idx(pdbname)
+                structure_key = structure_name.lower()
 
                 binder_energy_str = row.get("binder_energy", "{}")
                 try:
@@ -488,8 +705,13 @@ def _build_fixed_positions_csv(
                     merged_energy[structure_name] = {}
                 if binder_chain not in merged_energy[structure_name]:
                     merged_energy[structure_name][binder_chain] = {}
+                if structure_name not in merged_fixed_aas:
+                    merged_fixed_aas[structure_name] = {}
+                if binder_chain not in merged_fixed_aas[structure_name]:
+                    merged_fixed_aas[structure_name][binder_chain] = {}
 
                 chain_energy = merged_energy[structure_name][binder_chain]
+                chain_fixed_aas = merged_fixed_aas[structure_name][binder_chain]
 
                 for resseq, energy in binder_energy.items():
                     try:
@@ -511,10 +733,39 @@ def _build_fixed_positions_csv(
                     else:
                         chain_energy[resseq_int] = energy_val
 
-    output_rows: List[Tuple[str, str]] = []
+                    if energy_val >= energy_threshold:
+                        continue
+
+                    aa = _sequence_residue(
+                        sequence_rows=sequence_rows,
+                        structure_name=structure_key,
+                        seq_idx=seq_idx,
+                        chain=binder_chain,
+                        resseq=resseq_int,
+                    )
+                    if aa is None:
+                        log.warning(
+                            "No sequence residue found for %s seq_idx=%r chain=%s resseq=%s",
+                            structure_name,
+                            seq_idx,
+                            binder_chain,
+                            resseq_int,
+                        )
+                        continue
+
+                    existing = chain_fixed_aas.get(resseq_int)
+                    if existing is None or energy_val < existing[0]:
+                        chain_fixed_aas[resseq_int] = (energy_val, aa)
+
+    output_rows: List[Tuple[str, str, str]] = []
 
     for structure_name in sorted(merged_energy.keys()):
         positions: List[str] = []
+        structure_key = structure_name.lower()
+        template_seq = {
+            chain: list(sequence)
+            for chain, sequence in first_templates.get(structure_key, {}).items()
+        }
 
         for binder_chain in sorted(merged_energy[structure_name].keys()):
             chain_energy = merged_energy[structure_name][binder_chain]
@@ -527,13 +778,42 @@ def _build_fixed_positions_csv(
 
             positions.extend(f"{binder_chain}{resseq}" for resseq in key_resseqs)
 
+            if binder_chain not in template_seq:
+                continue
+
+            for resseq in key_resseqs:
+                fixed_aa = (
+                    merged_fixed_aas.get(structure_name, {})
+                    .get(binder_chain, {})
+                    .get(resseq)
+                )
+                if fixed_aa is None:
+                    continue
+
+                seq_pos = resseq - 1
+                if seq_pos < 0 or seq_pos >= len(template_seq[binder_chain]):
+                    log.warning(
+                        "Cannot merge fixed amino acid for %s chain=%s resseq=%s; "
+                        "template sequence length=%d",
+                        structure_name,
+                        binder_chain,
+                        resseq,
+                        len(template_seq[binder_chain]),
+                    )
+                    continue
+
+                template_seq[binder_chain][seq_pos] = fixed_aa[1]
+
         fixed_positions = ",".join(positions) if positions else "NONE"
         filename = f"{structure_name}.pdb"
-        output_rows.append((filename, fixed_positions))
+        merge_seq = str(
+            {chain: "".join(sequence) for chain, sequence in template_seq.items()}
+        )
+        output_rows.append((filename, fixed_positions, merge_seq))
 
     with open(output_csv, "w", newline="") as fh:
         writer = csv.writer(fh)
-        writer.writerow(["filename", "fixed_positions"])
+        writer.writerow(["filename", "fixed_positions", "merge_seq"])
         writer.writerows(output_rows)
 
     log.info(
@@ -550,12 +830,10 @@ def _link_before_partial_pdbs_from_fixed_positions(
     before_partial_pdbs_dir: str,
 ) -> None:
     """
-    Read ``fixed_positions.csv`` and create symlinks in
-    ``before_partial_pdbs_dir`` for each filename listed in the ``filename`` column.
+    Read ``fixed_positions.csv`` and prepare PDBs in ``before_partial_pdbs_dir``.
 
-    Source files are expected under ``mpnn_pdbs_dir``. Since these source files
-    may themselves be symlinks, resolve them to their real paths before creating
-    the new symlink.
+    Rows with merge_seq are copied with binder-chain residue names rewritten.
+    Older rows without merge_seq keep the previous symlink behavior.
     """
     if not os.path.isfile(fixed_positions_csv):
         raise FileNotFoundError(f"fixed_positions_csv not found: {fixed_positions_csv}")
@@ -566,6 +844,7 @@ def _link_before_partial_pdbs_from_fixed_positions(
     os.makedirs(before_partial_pdbs_dir, exist_ok=True)
 
     linked_count = 0
+    written_count = 0
     skipped_count = 0
 
     with open(fixed_positions_csv, newline="") as fh:
@@ -594,15 +873,21 @@ def _link_before_partial_pdbs_from_fixed_positions(
             try:
                 if os.path.lexists(dst):
                     os.remove(dst)
-                os.symlink(real_src, dst)
-                linked_count += 1
+                merge_seq = _parse_merge_seq(row.get("merge_seq", ""))
+                if merge_seq:
+                    _rewrite_pdb_chains_with_merge_seq(real_src, dst, merge_seq)
+                    written_count += 1
+                else:
+                    os.symlink(real_src, dst)
+                    linked_count += 1
             except Exception as exc:
-                log.error("Error creating symlink: %s -> %s (%s)", real_src, dst, exc)
+                log.error("Error preparing PDB: %s -> %s (%s)", real_src, dst, exc)
                 skipped_count += 1
 
     log.info(
-        "_link_before_partial_pdbs_from_fixed_positions: linked %d files, skipped %d, output_dir=%s",
+        "_link_before_partial_pdbs_from_fixed_positions: linked %d files, wrote %d files, skipped %d, output_dir=%s",
         linked_count,
+        written_count,
         skipped_count,
         before_partial_pdbs_dir,
     )
@@ -934,7 +1219,7 @@ class Pipeline:
                     input_pdb=self.task.get("input_pdb"),
                     input_csv=self.task.get("input_csv"),
                     target_chain=self.task.get("target_chain", "B"),
-                    binder_chain=self.task.get("binder_chain", "A"),
+                    binder_chain=self.task.get("binder_chain", None),
                     sample_hotspot_rate_min=self.task.get(
                         "sample_hotspot_rate_min", 0.2
                     ),
@@ -963,6 +1248,7 @@ class Pipeline:
         # ----------------------------------------------------------------
         mpnn_pdbs_dir = os.path.join(self.stage1_dir, "mpnn_pdbs")
         os.makedirs(mpnn_pdbs_dir, exist_ok=True)
+        mpnn_seqs_csv = os.path.join(mpnn_pdbs_dir, "mpnn_seqs.csv")
 
         if self._enabled("MPNNStep_stage1") or self._enabled("AbMPNNStep_stage1"):
             # Create PDB symlinks from PPIFlow output first (no seqs yet)
@@ -1103,12 +1389,20 @@ class Pipeline:
         # Convert residue_energy.csv → fixed_positions.csv for PartialStep
         # ----------------------------------------------------------------
         fixed_positions_csv = os.path.join(self.stage2_dir, "fixed_positions.csv")
+        mpnn_seqs_csv_stage1 = os.path.join(
+            self.stage1_dir,
+            "mpnn_pdbs",
+            "mpnn_seqs.csv",
+        )
 
         if self._enabled("PartialStep"):
+            cfg = self._cfg("PartialStep")
             _build_fixed_positions_csv(
                 rosetta_fix_output_dir=rosetta_fix_out,
                 output_csv=fixed_positions_csv,
                 gentype=self.gentype,
+                mpnn_seqs_csv=mpnn_seqs_csv_stage1,
+                energy_threshold=cfg.get("energy_threshold", -5),
             )
 
         # ----------------------------------------------------------------
