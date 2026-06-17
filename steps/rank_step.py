@@ -259,7 +259,7 @@ class RankStep:
                     "dockq_mean": dockq_row["dockq_mean"],
                     "pdb_name": rosetta_row["pdb_name"],
                     "interface_score": interface_score,
-                    "rank_score": interface_score + 100.0 * rank_metric,
+                    "rank_score": 100.0 * rank_metric - interface_score,
                 }
             )
 
