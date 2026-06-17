@@ -1,7 +1,7 @@
 # PPIFlow Pipeline
 
 ## Update
-- fix `RankStep` rank_socore bug
+- fix `RankStep` rank_socore bug. [issue](https://github.com/Mingchenchen/PPIFlow/issues/35)
 
 ![](./model.png)
 
