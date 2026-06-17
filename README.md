@@ -1,5 +1,8 @@
 # PPIFlow Pipeline
 
+## Update
+- fix `RankStep` rank_socore bug
+
 ![](./model.png)
 
 This repository provides a two-stage protein design pipeline built around **PPIFlow**. It supports three design modes:
