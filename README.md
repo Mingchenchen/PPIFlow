@@ -1,7 +1,11 @@
 # PPIFlow Pipeline
 
 ## Update
-- fix `RankStep` rank_socore bug. [issue](https://github.com/Mingchenchen/PPIFlow/issues/35)
+- Fix `RankStep` rank_socore bug. [issue](https://github.com/Mingchenchen/PPIFlow/issues/35)
+- Fix `MPNNStep_stage2` key residue merge bug. [issue](https://github.com/Mingchenchen/PPIFlow/issues/31)
+- Add support for Binder design with motif scaffolding. [issue](https://github.com/Mingchenchen/PPIFlow/issues/26)
+
+---
 
 ![](./model.png)
 
