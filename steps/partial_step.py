@@ -351,8 +351,6 @@ class PartialStep:
             missing.append("heavy_chain")
         if self.gentype == "antibody" and self.light_chain is None:
             missing.append("light_chain")
-        if not fixed_positions:
-            missing.append("fixed_positions")
         if not specified_hotspots:
             missing.append("specified_hotspots(from C-chain bfactor=2)")
         if not cdr_position:
