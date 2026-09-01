@@ -91,7 +91,7 @@ _OUTPUT_DIR = flags.DEFINE_string(
 )
 MODEL_DIR = flags.DEFINE_string(
     'model_dir',
-    '/lustre/grp/cmclab/share/chenmc/Alphafold3params',
+    None,
     'Path to the model to use for inference.',
 )
 

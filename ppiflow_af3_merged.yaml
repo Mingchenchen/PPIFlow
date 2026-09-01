@@ -1,6 +1,5 @@
 name: ppiflow_af3
 channels:
-  - defaults
   - conda-forge
   - anaconda
   - pytorch

@@ -28,8 +28,8 @@ parser.add_argument(
     '--csv_file',
     help='Path to directory with PDB files.',
     type=str,
-    default='/Users/linjie/projects/protein-frame-flow_gpuold/cd3_ucht1_RL/output_file.csv')
-    # default='/lustre/grp/cmclab/share/linj/frameflow_data/PPI/processed_ppi/domain_domain/val_cluster.csv')
+    default='output_file.csv')
+
 parser.add_argument(
     '--datatype',
     help='train or val',
@@ -40,8 +40,8 @@ parser.add_argument(
     '--write_dir',
     help='Path to write results to.',
     type=str,
-    default='/Users/linjie/projects/protein-frame-flow_gpuold/cd3_ucht1_RL/pkl')
-    # default='/lustre/grp/cmclab/share/linj/frameflow_data/PPI/processed_ppi/domain_domain/val_pkl')
+    default='cd3_ucht1_RL/pkl')
+
 parser.add_argument(
     '--num_processes',
     help='Number of processes.',

@@ -140,8 +140,8 @@ class AF3scoreStep:
         output_dir: str,
         pipeline_script_dir: Optional[str] = None,
         python: Optional[str] = None,
-        db_dir: str = "/lustre/grp/cmclab/share/wangd/af3_data",
-        model_dir: str = "/lustre/grp/cmclab/share/chenmc/Alphafold3params",
+        db_dir: str = None,
+        model_dir: str = None,
         num_workers: Optional[int] = None,
     ):
         if input_pdb_dir is None:
@@ -684,9 +684,6 @@ class AF3scoreStep:
         env["PATH"] = f"/usr/local/cuda-12.6/bin:{env.get('PATH', '')}"
         env["LD_LIBRARY_PATH"] = (
             f"/usr/local/cuda-12.6/lib64:{env.get('LD_LIBRARY_PATH', '')}"
-        )
-        env["PATH"] = (
-            f"/lustre/grp/cmclab/share/wangd/hmmer/bin:{env.get('PATH', '')}"
         )
         env["XLA_FLAGS"] = "--xla_gpu_enable_triton_gemm=true"
         env["XLA_PYTHON_CLIENT_PREALLOCATE"] = "true"

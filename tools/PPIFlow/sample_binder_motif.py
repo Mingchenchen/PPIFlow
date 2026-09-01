@@ -199,7 +199,7 @@ def get_parser():
 
     # checkpoint
     parser.add_argument("--model_weights", type=str,
-                        default='/lustre/grp/cmclab/share/guoly/ppiflow/ckpt/20250407_motif_v45_monomer_rcsb_from_mono_ep131/epoch=88-step=80367.ckpt',
+                        default=None,
                         help="Model weights file path")
 
     # output dir

@@ -66,9 +66,6 @@ print("PATH 环境变量内容:")
 print(path_env)
 import os
 import shutil
-# 添加 jackhmmer等工具 的路径到 PATH
-os.environ["PATH"] = "/lustre/grp/cmclab/share/wangd/hmmer/bin:" + os.environ.get("PATH", "")
-#
 
 
 
@@ -82,11 +79,7 @@ _JSON_PATH = flags.DEFINE_string(
     None,
     'Path to the input JSON file.',
 )
-# _JSON_PATH = flags.DEFINE_string( #使用python run_alphafold.py --json_path=="path/used"的话，会对这里的进行覆盖
-#     'json_path',
-#     '/lustre/grp/cmclab/share/zhengyi/alphafold3/src/alphafold3/lizhengyi_test_input/fold_input.json',
-#     'Path to the input JSON file.',
-# )
+
 
 _INPUT_DIR = flags.DEFINE_string(
     'input_dir',
@@ -94,28 +87,16 @@ _INPUT_DIR = flags.DEFINE_string(
     'Path to the directory containing input JSON files.',
 )
 
-#修改
-# _OUTPUT_DIR = flags.DEFINE_string(
-#     'output_dir',
-#     None,
-#     'Path to a directory where the results will be saved.',
-# )
 _OUTPUT_DIR = flags.DEFINE_string(
     'output_dir',
-    '/lustre/grp/cmclab/share/zhengyi/alphafold3/src/alphafold3/lizhengyi_test_output',  # 默认值改为 "lizhengyi_test"
+    None,
     'Path to a directory where the results will be saved.',
 )
 
 
-#修改
-# MODEL_DIR = flags.DEFINE_string(
-#     'model_dir',
-#     _DEFAULT_MODEL_DIR.as_posix(),
-#     'Path to the model to use for inference.',
-# )
 MODEL_DIR = flags.DEFINE_string(
     'model_dir',
-    '/lustre/grp/cmclab/share/chenmc/Alphafold3params',
+    None,
     'Path to the model to use for inference.',
 )
 
@@ -183,22 +164,12 @@ _HMMBUILD_BINARY_PATH = flags.DEFINE_string(
     'Path to the Hmmbuild binary.',
 )
 
-#修改
-# Database paths.
-# DB_DIR = flags.DEFINE_multi_string(
-#     'db_dir',
-#     (_DEFAULT_DB_DIR.as_posix(),),
-#     'Path to the directory containing the databases. Can be specified multiple'
-#     ' times to search multiple directories in order.',
-# )
 DB_DIR = flags.DEFINE_multi_string(
     'db_dir',
-    '/lustre/grp/cmclab/share/wangd/af3_data',
+    None,
     'Path to the directory containing the databases. Can be specified multiple'
     ' times to search multiple directories in order.',
 )
-
-
 
 
 _SMALL_BFD_DATABASE_PATH = flags.DEFINE_string(

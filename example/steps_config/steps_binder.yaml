@@ -5,8 +5,8 @@ python: "~/anaconda3/envs/ppiflow_af3/bin/python"
 # PPIFlowStep
 # ============================================================
 PPIFlowStep:
-  model_weights: "binder.ckpt"
-  config: "/tools/PPIFlow/configs/inference_binder.yaml"
+  model_weights: "/path/to/binder.ckpt"
+  config: "tools/PPIFlow/configs/inference_binder.yaml"
 
 # ============================================================
 # MPNNStep（Stage 1）
@@ -24,15 +24,15 @@ MPNNStep_stage1:
 # FlowpackerStep（Stage 1）
 # ============================================================
 FlowpackerStep_stage1:
-  config_path: "/tools/flowpacker/config/inference/base.yaml"
+  config_path: "tools/flowpacker/config/inference/base.yaml"
   use_gt_masks: true
 
 # ============================================================
 # AF3scoreStep（Stage 1）
 # ============================================================
 AF3scoreStep_stage1:
-  db_dir: "/lustre/grp/cmclab/share/wangd/af3_data"
-  model_dir: "/lustre/grp/cmclab/share/chenmc/Alphafold3params"
+  db_dir: "/path/to/af3_db"
+  model_dir: "/path/to/af3_model"
   num_workers: 2                  
 
 # ============================================================
@@ -47,7 +47,7 @@ FilterStep_stage1:
 # RosettaFixStep
 # ============================================================
 RosettaFixStep:
-  rosetta_bin: "/lustre/grp/cmclab/share/yuql/tool/rosetta.binary.linux.release-371/main/source/bin/rosetta_scripts.static.linuxgccrelease"
+  rosetta_bin: "/path/to/rosetta.binary.linux.release-371/main/source/bin/rosetta_scripts.static.linuxgccrelease"
   interface_dist: 12.0
   native_xml: null                    
   plot_toggle: false
@@ -57,10 +57,10 @@ RosettaFixStep:
 # PartialStep（Stage 2）
 # ============================================================
 PartialStep:
-  model_weights: "binder.ckpt"
-  config: "/tools/PPIFlow/configs/inference_binder_partial.yaml"
+  model_weights: "/path/to/binder.ckpt"
+  config: "tools/PPIFlow/configs/inference_binder_partial.yaml"
   samples_per_target: 10
-  start_t: 0.7                   
+  start_t: 0.7
   target_chain: "B"
   binder_chain: "A"
   sample_hotspot_rate_min: 0.2
@@ -70,7 +70,7 @@ PartialStep:
 # MPNNStep（Stage 2）
 # ============================================================
 MPNNStep_stage2:
-  num_seq_per_target: 8             
+  num_seq_per_target: 8
   sampling_temp: 0.1
   batch_size: 1
   chains_to_design: "A"
@@ -81,15 +81,15 @@ MPNNStep_stage2:
 # FlowpackerStep（Stage 2）
 # ============================================================
 FlowpackerStep_stage2:
-  config_path: "/tools/flowpacker/config/inference/base.yaml"
+  config_path: "tools/flowpacker/config/inference/base.yaml"
   use_gt_masks: true
 
 # ============================================================
 # AF3scoreStep（Stage 2）
 # ============================================================
 AF3scoreStep_stage2:
-  db_dir: "/lustre/grp/cmclab/share/wangd/af3_data"
-  model_dir: "/lustre/grp/cmclab/share/chenmc/Alphafold3params"
+  db_dir: "/path/to/af3_db"
+  model_dir: "/path/to/af3_model"
   num_workers: 2   
 
 # ============================================================
@@ -104,9 +104,9 @@ FilterStep_stage2:
 # ReFoldStep
 # ============================================================
 ReFoldStep:
-  db_dir: "/lustre/grp/cmclab/share/wangd/af3_data"
-  model_dir: "/lustre/grp/cmclab/share/chenmc/Alphafold3params"
-  hmmer_path: "/lustre/grp/cmclab/share/wangd/hmmer/bin"
+  db_dir: "/path/to/af3_db"
+  model_dir: "/path/to/af3_model"
+  hmmer_path: "/path/to/hmmer/bin"
   run_MSA: true
   remove_template: true
   run_AF3_inference: false

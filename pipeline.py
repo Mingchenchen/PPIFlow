@@ -39,6 +39,7 @@ import logging
 import os
 import re
 import sys
+from pathlib import Path
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import Dict, List, Optional, Tuple
 
@@ -1158,7 +1159,11 @@ class Pipeline:
         self.output_base_dir: str = os.path.abspath(self.task["output_base_dir"])
 
         # Unified Python interpreter for all steps; falls back to sys.executable
-        self.python: str = steps_cfg.get("python", sys.executable)
+        self.python: str = (
+            str(Path(steps_cfg["python"]).expanduser().resolve())
+            if steps_cfg.get("python")
+            else sys.executable
+        )
 
         self.stage1_dir = os.path.join(self.output_base_dir, "stage1")
         self.stage2_dir = os.path.join(self.output_base_dir, "stage2")
@@ -1691,11 +1696,16 @@ class Pipeline:
                 dockq_model_dir=dockq_model_dir,
             )
 
+            if cfg["dockq_exe"]:
+                dockq_exe = str(Path(cfg["dockq_exe"]).expanduser().resolve())
+            else:
+                dockq_exe = "DockQ"
+
             DockQStep(
                 reference_dir=filtered_out,
                 model_dir=prepared_model_dir,
                 output_csv=dockq_out_csv,
-                dockq_exe=cfg.get("dockq_exe", "DockQ"),
+                dockq_exe=dockq_exe,
                 dockq_args=cfg.get("dockq_args", ["--short"]),
                 recursive=cfg.get("recursive", False),
             ).run()

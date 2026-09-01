@@ -13,21 +13,21 @@ task:
 
 steps:
   # --- Stage 1 ---
-  PPIFlowStep: false
-  MPNNStep_stage1: false 
+  PPIFlowStep: true
+  MPNNStep_stage1: true 
   FlowpackerStep_stage1: true
   AF3scoreStep_stage1: true
   FilterStep_stage1: true            
 
   # --- Stage 2 ---
-  RosettaFixStep: false
-  PartialStep: false
-  MPNNStep_stage2: false  
-  FlowpackerStep_stage2: false
-  AF3scoreStep_stage2: false
-  FilterStep_stage2: false           
-  ReFoldStep: false
+  RosettaFixStep: true
+  PartialStep: true
+  MPNNStep_stage2: true  
+  FlowpackerStep_stage2: true
+  AF3scoreStep_stage2: true
+  FilterStep_stage2: true           
+  ReFoldStep: true
   DockQStep: true
   RosettaRelaxStep: true
   RankStep: true
-  ReportStep: false
+  ReportStep: true

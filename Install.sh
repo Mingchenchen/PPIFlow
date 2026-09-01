@@ -5,7 +5,13 @@ set -Eeuo pipefail
 #######################################
 # Constants
 #######################################
-CONDA_INIT_SCRIPT="${HOME}/anaconda3/etc/profile.d/conda.sh"
+if ! command -v conda >/dev/null 2>&1; then
+    echo "Error: conda not found in PATH." >&2
+    exit 1
+fi
+
+CONDA_BASE="$(conda info --base)"
+CONDA_INIT_SCRIPT="${CONDA_BASE}/etc/profile.d/conda.sh"
 ENV_YAML_FILE="ppiflow_af3_merged.yaml"
 CONDA_ENV_NAME="ppiflow_af3"
 
@@ -101,7 +107,9 @@ log_info "Creating conda environment from: ${ENV_YAML_FILE}"
 conda env create -f "${ENV_YAML_FILE}"
 
 log_info "Activating conda environment: ${CONDA_ENV_NAME}"
+set +euo pipefail
 conda activate "${CONDA_ENV_NAME}"
+set -euo pipefail
 
 if [[ -z "${CONDA_PREFIX:-}" ]]; then
     echo "Error: CONDA_PREFIX is not set. The conda environment may not have been activated correctly." >&2

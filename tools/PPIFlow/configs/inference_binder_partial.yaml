@@ -109,7 +109,7 @@ experiment:
 
   testing_model: # **
     save_dir: sample_result/${experiment.wandb.name}/${now:%Y%m%d}/${now:%H_%M_%S}/sample_test
-    ckpt_path:  "/lustre/grp/cmclab/share/guoly/ppiflow/ckpt/20250407_motif_v45_monomer_rcsb_from_mono_ep131/epoch=88-step=80367.ckpt"
+    ckpt_path:  "binder.ckpt"
 
 
 
