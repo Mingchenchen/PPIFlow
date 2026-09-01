@@ -100,6 +100,7 @@ Install the following system dependencies before setting up PPIFlow:
 git clone https://github.com/Mingchenchen/PPIFlow.git
 cd PPIFlow
 
+# Installation requires approximately 20 GB of storage
 bash Install.sh
 ```
 
